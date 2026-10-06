@@ -29,7 +29,7 @@ export default async function RequestsPage({ searchParams }: PageProps<"/request
   const { data: settings } = await supabase.from("settings").select("due_soon_days").single();
   let query = supabase
     .from("requests")
-    .select("*, profiles!requests_student_id_fkey(full_name, student_id, email, department, year), request_items(item_id, qty, lost_qty, items(id, name, category, available_qty))")
+    .select("*, profiles!requests_student_id_fkey(full_name, student_id, email, phone, department, year), request_items(item_id, qty, lost_qty, items(id, name, category, available_qty))")
     .order("created_at", { ascending: false });
   if (!isAdmin) query = query.eq("student_id", profile.id);
   if (filter === "due") {

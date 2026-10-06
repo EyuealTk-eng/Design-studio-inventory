@@ -7,6 +7,7 @@ export interface Profile {
   full_name: string;
   student_id: string;
   email: string;
+  phone: string | null;
   department: string;
   year: number;
   role: Role;
@@ -47,7 +48,7 @@ export interface BorrowRequest {
   reviewed_at: string | null;
   returned_at: string | null;
   created_at: string;
-  profiles?: Pick<Profile, "full_name" | "student_id" | "email" | "department" | "year"> | null;
+  profiles?: Pick<Profile, "full_name" | "student_id" | "email" | "phone" | "department" | "year"> | null;
   request_items?: RequestLine[];
 }
 

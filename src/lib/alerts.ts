@@ -38,7 +38,7 @@ export async function runAlerts() {
   const { data: due } = await db
     .from("requests")
     .select(
-      "id, project, due_date, profiles!requests_student_id_fkey(id, email, full_name, student_id), request_items(qty, items(name))",
+      "id, project, due_date, profiles!requests_student_id_fkey(id, email, full_name, phone, student_id), request_items(qty, items(name))",
     )
     .eq("status", "approved")
     .lte("due_date", addDays(t, settings.due_soon_days))
@@ -55,6 +55,7 @@ export async function runAlerts() {
         body: `Please return ${itemList(row)} (project "${row.project}") by ${formatDate(row.due_date)}.`,
         link,
         dedupeKey: `due-soon:${row.id}`,
+        sms: `Reminder: please return ${itemList(row)} to the studio by ${formatDate(row.due_date)}.`,
       });
     } else {
       // Remind on the first overdue day, then once a week.
@@ -64,6 +65,7 @@ export async function runAlerts() {
         body: `${itemList(row)} for project "${row.project}" was due ${formatDate(row.due_date)} (${dueLabel(row.due_date, t)}).`,
         link,
         dedupeKey: `overdue:${row.id}:${Math.floor((-n - 1) / 7)}`,
+        sms: `OVERDUE: ${itemList(row)} was due ${formatDate(row.due_date)}. Please return it to the studio as soon as possible.`,
       });
     }
   }
@@ -80,6 +82,7 @@ export async function runAlerts() {
       body: lines.join("\n"),
       link: "/requests?filter=due",
       dedupeKey: `admin-due:${t}`,
+      sms: `${due.length} borrow request${due.length === 1 ? " is" : "s are"} due soon or overdue. See the inventory site.`,
     });
   }
 
@@ -96,6 +99,7 @@ export async function runAlerts() {
       body: `The monthly inventory check-in is on ${formatDate(checkin)}. The check-in page lists what is out, overdue and left in stock.`,
       link: "/checkin",
       dedupeKey: untilCheckin === 0 ? `checkin-day:${checkin}` : `checkin:${checkin}`,
+      sms: `Monthly inventory check-in ${untilCheckin === 0 ? "is today" : `in ${untilCheckin} day${untilCheckin === 1 ? "" : "s"}`} (${formatDate(checkin)}).`,
     });
   }
 
@@ -113,6 +117,7 @@ export async function runAlerts() {
         .join("\n"),
       link: "/inventory?filter=low",
       dedupeKey: `low-stock:${weekKey(t)}`,
+      sms: `Low stock, consider ordering: ${low.map((i) => `${i.name} (${i.available_qty} left)`).join(", ")}`,
     });
   }
 

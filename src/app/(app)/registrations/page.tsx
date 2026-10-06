@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { notify } from "@/lib/notify";
 import { formatDate } from "@/lib/dates";
+import { formatPhone } from "@/lib/phone";
 import type { Profile } from "@/lib/types";
 import { Badge, Card, EmptyState, PageHeader, cx } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
@@ -32,7 +33,7 @@ async function decide(formData: FormData) {
     .update({ status, reviewed_at: new Date().toISOString(), reviewed_by: admin.id })
     .eq("id", id)
     .neq("id", admin.id)
-    .select("id, email, full_name, student_id")
+    .select("id, email, full_name, phone, student_id")
     .single();
   if (user) {
     await notify([user], {
@@ -43,6 +44,10 @@ async function decide(formData: FormData) {
           ? `Welcome! Sign in with your student ID (${user.student_id}) and the password you chose.`
           : "Please contact the Biomedical Design Studio admins if you think this is a mistake.",
       link: "/login",
+      sms:
+        status === "approved"
+          ? `Your studio inventory account is approved. Sign in with your student ID ${user.student_id}.`
+          : "Your studio inventory registration was not approved. Please contact the studio admins.",
       dedupeKey: `account:${status}:${new Date().toISOString().slice(0, 10)}`,
     });
   }
@@ -103,6 +108,7 @@ export default async function RegistrationsPage({ searchParams }: PageProps<"/re
                   </div>
                   <p className="text-sm text-muted">
                     <span className="font-mono">{p.student_id}</span> · {p.department}, year {p.year} · {p.email}
+                    {p.phone && <> · {formatPhone(p.phone)}</>}
                   </p>
                   <p className="text-xs text-muted">Registered {formatDate(p.created_at)}</p>
                 </div>

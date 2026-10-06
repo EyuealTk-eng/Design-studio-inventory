@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
-import { AlertTriangle, Bell, BellRing, CalendarCheck, CheckCircle2, ClipboardList, PackageX, UserPlus, type LucideIcon } from "lucide-react";
+import { AlertTriangle, Bell, BellRing, CalendarCheck, CheckCircle2, ClipboardList, MessageSquare, PackageX, UserPlus, type LucideIcon } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/dates";
@@ -20,6 +20,7 @@ const ICONS: Record<string, LucideIcon> = {
   new_request: ClipboardList,
   request_approved: CheckCircle2,
   returned: CheckCircle2,
+  message: MessageSquare,
 };
 
 async function markAllRead() {

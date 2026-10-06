@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin, requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { adminRecipients, notify } from "@/lib/notify";
+import { adminRecipients, deliver, notify } from "@/lib/notify";
 import { formatDate, today } from "@/lib/dates";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -80,6 +80,7 @@ export async function createRequest(
     body: `${profile.full_name} (${profile.student_id}) requested ${v.lines.length} item type${v.lines.length === 1 ? "" : "s"} for "${v.project}", returning ${formatDate(v.due_date)}.`,
     link: `/requests/${requestId}`,
     dedupeKey: `new-request:${requestId}`,
+    sms: `New borrow request from ${profile.full_name} for "${v.project}". Please review it on the inventory site.`,
   });
 
   revalidatePath("/requests");
@@ -90,14 +91,14 @@ interface ReviewTarget {
   id: string;
   project: string;
   due_date: string;
-  profiles: { id: string; email: string; full_name: string };
+  profiles: { id: string; email: string; full_name: string; phone: string | null };
 }
 
 async function loadTarget(id: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("requests")
-    .select("id, project, due_date, profiles!requests_student_id_fkey(id, email, full_name)")
+    .select("id, project, due_date, profiles!requests_student_id_fkey(id, email, full_name, phone)")
     .eq("id", id)
     .single<ReviewTarget>();
   return data;
@@ -135,6 +136,9 @@ export async function reviewRequest(formData: FormData) {
         : `Your request for "${target.project}" was declined.${note ? `\n\nReason: ${note}` : ""}`,
       link: `/requests/${id}`,
       dedupeKey: `review:${id}`,
+      sms: approved
+        ? `Your request for "${target.project}" is approved. Collect the items and return them by ${formatDate(target.due_date)}.`
+        : `Your request for "${target.project}" was not approved.${note ? ` Reason: ${note}` : ""}`,
     });
     if (approved) await alertLowStock(id);
   }
@@ -157,6 +161,7 @@ async function alertLowStock(requestId: string) {
     body: low.map((i) => `• ${i.name}: only ${i.available_qty} left — consider ordering more`).join("\n"),
     link: "/inventory?filter=low",
     dedupeKey: `low-after:${requestId}`,
+    sms: `Low stock: ${low.map((i) => `${i.name} (${i.available_qty} left)`).join(", ")}. Consider ordering more.`,
   });
 }
 
@@ -188,3 +193,30 @@ export async function markReturned(formData: FormData) {
   back(id);
 }
 
+
+/** Admin sends a message to the borrower right now, by email and SMS. */
+export async function messageBorrower(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id"));
+  const message = String(formData.get("message") ?? "").trim().slice(0, 600);
+  if (!message) back(id, "Write a message first");
+  const target = await loadTarget(id);
+  if (!target) back(id, "Request not found");
+
+  const result = await deliver([target.profiles], {
+    kind: "message",
+    title: `Message about "${target.project}"`,
+    body: message,
+    link: `/requests/${id}`,
+    dedupeKey: `message:${id}:${Date.now()}`,
+    sms: message,
+  });
+  const parts = [
+    result.emailed ? "email" : null,
+    result.texted ? "SMS" : null,
+  ].filter(Boolean);
+  revalidatePath(`/requests/${id}`);
+  redirect(
+    `/requests/${id}?sent=${encodeURIComponent(parts.length ? parts.join(" + ") : "in-app")}`,
+  );
+}

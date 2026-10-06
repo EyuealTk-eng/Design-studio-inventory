@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarClock, CheckCircle2, FileText, PackageCheck, User, XCircle } from "lucide-react";
+import { CalendarClock, CheckCircle2, FileText, PackageCheck, Send, User, XCircle } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { dueLabel, formatDate, today } from "@/lib/dates";
 import type { BorrowRequest } from "@/lib/types";
 import { Alert, Badge, Card, Field, Input, PageHeader, StatusBadge, Textarea, buttonClass } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
-import { markReturned, reviewRequest } from "../actions";
+import { messageBorrower, markReturned, reviewRequest } from "../actions";
+import { formatPhone } from "@/lib/phone";
+import { smsConfigured } from "@/lib/sms";
 
 export const metadata: Metadata = { title: "Request" };
 
@@ -16,12 +18,12 @@ export default async function RequestPage({ params, searchParams }: PageProps<"/
   const profile = await requireUser();
   const isAdmin = profile.role === "admin";
   const { id } = await params;
-  const { error, created } = await searchParams;
+  const { error, created, sent } = await searchParams;
   const supabase = await createClient();
 
   const { data: r } = await supabase
     .from("requests")
-    .select("*, profiles!requests_student_id_fkey(full_name, student_id, email, department, year), request_items(item_id, qty, lost_qty, items(id, name, category, available_qty))")
+    .select("*, profiles!requests_student_id_fkey(full_name, student_id, email, phone, department, year), request_items(item_id, qty, lost_qty, items(id, name, category, available_qty))")
     .eq("id", id)
     .maybeSingle<BorrowRequest>();
   if (!r) notFound();
@@ -45,6 +47,7 @@ export default async function RequestPage({ params, searchParams }: PageProps<"/
       <div className="mb-4 flex flex-col gap-3">
         {created === "1" && <Alert tone="green">Request sent! You&apos;ll get an email when an admin reviews it.</Alert>}
         {typeof error === "string" && <Alert>{error}</Alert>}
+        {typeof sent === "string" && <Alert tone="green">Message sent to the student by {sent}.</Alert>}
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_24rem]">
@@ -105,7 +108,10 @@ export default async function RequestPage({ params, searchParams }: PageProps<"/
                 <div>
                   <p className="font-semibold">{r.profiles.full_name}</p>
                   <p className="text-muted">{r.profiles.student_id} · {r.profiles.department}, year {r.profiles.year}</p>
-                  <a href={`mailto:${r.profiles.email}`} className="text-brand-700 hover:underline">{r.profiles.email}</a>
+                  <a href={`mailto:${r.profiles.email}`} className="block text-brand-700 hover:underline">{r.profiles.email}</a>
+                  {r.profiles.phone && (
+                    <a href={`tel:${r.profiles.phone}`} className="block text-brand-700 hover:underline">{formatPhone(r.profiles.phone)}</a>
+                  )}
                 </div>
               </div>
             )}
@@ -159,8 +165,10 @@ export default async function RequestPage({ params, searchParams }: PageProps<"/
                   <legend className="mb-1 text-sm font-semibold">Missing or broken (leave 0 if all fine)</legend>
                   {lines.map((l) => (
                     <label key={l.item_id} className="flex items-center justify-between gap-3 text-sm">
-                      <span className="truncate">{l.items?.name}</span>
-                      <Input type="number" name={`lost:${l.item_id}`} min={0} max={l.qty} defaultValue={0} inputMode="numeric" className="w-20" aria-label={`${l.items?.name} missing or broken`} />
+                      <span className="min-w-0 truncate">{l.items?.name}</span>
+                      <div className="w-20 shrink-0">
+                        <Input type="number" name={`lost:${l.item_id}`} min={0} max={l.qty} defaultValue={0} inputMode="numeric" aria-label={`${l.items?.name} missing or broken`} />
+                      </div>
                     </label>
                   ))}
                 </fieldset>
@@ -171,6 +179,36 @@ export default async function RequestPage({ params, searchParams }: PageProps<"/
                   <PackageCheck className="size-4" aria-hidden /> Mark as returned
                 </SubmitButton>
                 <p className="text-xs text-muted">Returned units go back into available stock; missing ones are removed from the total.</p>
+              </form>
+            </Card>
+          )}
+
+          {isAdmin && r.profiles && r.status !== "rejected" && (
+            <Card className="p-5">
+              <h2 className="mb-1 font-semibold">Message the student</h2>
+              <p className="mb-3 text-sm text-muted">
+                Goes straight to {r.profiles.full_name.split(" ")[0]}&apos;s email
+                {r.profiles.phone ? (smsConfigured() ? " and phone (SMS)" : " (SMS isn't set up yet)") : " (no phone number on file)"}.
+              </p>
+              <form action={messageBorrower} className="flex flex-col gap-3">
+                <input type="hidden" name="id" value={r.id} />
+                <label htmlFor="message" className="sr-only">Message</label>
+                <Textarea
+                  id="message"
+                  name="message"
+                  required
+                  maxLength={600}
+                  defaultValue={
+                    overdue
+                      ? `Hi ${r.profiles.full_name.split(" ")[0]}, the items for "${r.project}" were due ${formatDate(r.due_date)}. Please return them to the studio as soon as possible.`
+                      : r.status === "approved"
+                        ? `Hi ${r.profiles.full_name.split(" ")[0]}, a reminder to return the items for "${r.project}" by ${formatDate(r.due_date)}.`
+                        : ""
+                  }
+                />
+                <SubmitButton pendingText="Sending…" variant="secondary">
+                  <Send className="size-4" aria-hidden /> Send now
+                </SubmitButton>
               </form>
             </Card>
           )}

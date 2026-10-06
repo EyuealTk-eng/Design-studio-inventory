@@ -38,6 +38,9 @@ export function SignupForm() {
           <Input id="email" name="email" defaultValue={val.email} type="email" autoComplete="email" required aria-invalid={!!fe.email} />
         </Field>
       </div>
+      <Field label="Phone number" htmlFor="phone" error={fe.phone} hint="For SMS reminders about your return dates">
+        <Input id="phone" name="phone" type="tel" inputMode="tel" defaultValue={val.phone} autoComplete="tel" placeholder="0911 234 567" required aria-invalid={!!fe.phone} />
+      </Field>
       <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
         <Field label="Department" htmlFor="department" error={fe.department}>
           <Input id="department" name="department" defaultValue={val.department} placeholder="e.g. Biomedical Engineering" required aria-invalid={!!fe.department} />

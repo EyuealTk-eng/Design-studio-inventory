@@ -20,7 +20,7 @@ import { StatCard } from "@/components/stat-card";
 export const metadata: Metadata = { title: "Dashboard" };
 
 const REQUEST_SELECT =
-  "*, profiles!requests_student_id_fkey(full_name, student_id, email, department, year), request_items(item_id, qty, lost_qty, items(id, name, category, available_qty))";
+  "*, profiles!requests_student_id_fkey(full_name, student_id, email, phone, department, year), request_items(item_id, qty, lost_qty, items(id, name, category, available_qty))";
 
 function greeting() {
   const h = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: process.env.APP_TIMEZONE ?? "Africa/Addis_Ababa" }).format(new Date()));

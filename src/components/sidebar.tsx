@@ -15,6 +15,7 @@ import {
   Settings,
   Boxes,
   UserCheck,
+  UserCircle,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -56,6 +57,7 @@ export function Sidebar({
           { href: "/requests", label: "My requests", icon: ClipboardList },
         ]),
     { href: "/notifications", label: "Notifications", icon: Bell, count: counts.notifications },
+    { href: "/account", label: "My account", icon: UserCircle },
   ];
 
   const isActive = (href: string) =>

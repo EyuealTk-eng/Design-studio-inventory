@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminRecipients, notify } from "@/lib/notify";
+import { normalisePhone } from "@/lib/phone";
 
 export interface FormState {
   error?: string;
@@ -32,6 +33,10 @@ const signupSchema = z
       .max(40)
       .regex(/^[A-Za-z0-9/_-]+$/, "Use letters, numbers, / - or _ only"),
     email: z.string().trim().toLowerCase().email("Enter a valid email address"),
+    phone: z
+      .string()
+      .transform((v) => normalisePhone(v))
+      .refine((v): v is string => v !== null, "Enter a phone number like 0911 234 567"),
     department: z.string().trim().min(2, "Enter your department").max(120),
     year: z.coerce.number().int().min(1, "Choose your year").max(8),
     password: z.string().min(8, "Use at least 8 characters").max(72),
@@ -71,6 +76,7 @@ export async function signup(_prev: FormState, formData: FormData): Promise<Form
     full_name: v.full_name,
     student_id: studentId,
     email: v.email,
+    phone: v.phone,
     department: v.department,
     year: v.year,
   });
@@ -85,6 +91,7 @@ export async function signup(_prev: FormState, formData: FormData): Promise<Form
     body: `${v.full_name} (${studentId}), ${v.department} year ${v.year}, is waiting for approval.`,
     link: "/registrations",
     dedupeKey: `signup:${created.user.id}`,
+    sms: `New registration waiting for approval: ${v.full_name} (${studentId}).`,
   });
 
   return {
