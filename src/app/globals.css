@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+/* Clinical blue & white theme. Components use these semantic tokens, not raw hex. */
+@theme {
+  --color-brand-50: #eff5ff;
+  --color-brand-100: #dbe8fe;
+  --color-brand-200: #bfd6fe;
+  --color-brand-300: #93bbfd;
+  --color-brand-400: #6096fa;
+  --color-brand-500: #3b74f6;
+  --color-brand-600: #2457eb;
+  --color-brand-700: #1d45d8;
+  --color-brand-800: #1e3aaf;
+  --color-brand-900: #1e3689;
+  --color-brand-950: #172354;
+
+  --color-ink: #0b1b3a;
+  --color-muted: #4a5a78;
+  --color-line: #dbe5f3;
+  --color-surface: #f4f8fe;
+
+  --color-ok: #047857;
+  --color-ok-bg: #ecfdf5;
+  --color-warn: #b45309;
+  --color-warn-bg: #fffbeb;
+  --color-bad: #b91c1c;
+  --color-bad-bg: #fef2f2;
+
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-card: 0 1px 2px rgb(15 40 90 / 0.04), 0 4px 16px rgb(15 40 90 / 0.06);
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* Subtle molecular grid used on auth pages and the dashboard hero. */
+.bg-grid {
+  background-image:
+    radial-gradient(circle at 1px 1px, rgb(59 116 246 / 0.18) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  body { background: #fff; }
+  .no-print { display: none !important; }
+  .print-full { margin: 0 !important; padding: 0 !important; }
+}
