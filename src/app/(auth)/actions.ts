@@ -55,10 +55,17 @@ export async function signup(_prev: FormState, formData: FormData): Promise<Form
   const studentId = normaliseId(v.student_id);
   const db = createAdminClient();
 
-  const [{ count: idTaken }, { count: emailTaken }] = await Promise.all([
+  const [{ count: idTaken, error: lookupError }, { count: emailTaken }] = await Promise.all([
     db.from("profiles").select("id", { count: "exact", head: true }).eq("student_id", studentId),
     db.from("profiles").select("id", { count: "exact", head: true }).eq("email", v.email),
   ]);
+  if (lookupError) {
+    console.error("signup: profiles lookup failed", lookupError);
+    return {
+      error: `The site isn't connected to its database correctly (${lookupError.message || lookupError.code}). Please tell an admin.`,
+      values: echo(formData),
+    };
+  }
   if (idTaken) return { fieldErrors: { student_id: "This student ID is already registered" }, values: echo(formData) };
   if (emailTaken) return { fieldErrors: { email: "This email is already registered" }, values: echo(formData) };
 
@@ -68,7 +75,18 @@ export async function signup(_prev: FormState, formData: FormData): Promise<Form
     email_confirm: true,
   });
   if (error || !created.user) {
-    return { error: error?.message.includes("already") ? "This email is already registered" : "Could not create your account. Please try again." };
+    console.error("signup: createUser failed", error);
+    if (error?.message.includes("already")) {
+      return { fieldErrors: { email: "This email is already registered" }, values: echo(formData) };
+    }
+    // "User not allowed" / 401 / 403 means SUPABASE_SERVICE_ROLE_KEY is not the service_role key.
+    const keyProblem = error?.status === 401 || error?.status === 403 || /not allowed|invalid api key|jwt/i.test(error?.message ?? "");
+    return {
+      error: keyProblem
+        ? `The site's database key is wrong (${error?.message}). An admin needs to check SUPABASE_SERVICE_ROLE_KEY in Vercel.`
+        : `Could not create your account (${error?.message ?? "unknown error"}). Please try again or tell an admin.`,
+      values: echo(formData),
+    };
   }
 
   const { error: profileError } = await db.from("profiles").insert({
@@ -81,8 +99,12 @@ export async function signup(_prev: FormState, formData: FormData): Promise<Form
     year: v.year,
   });
   if (profileError) {
+    console.error("signup: profile insert failed", profileError);
     await db.auth.admin.deleteUser(created.user.id);
-    return { error: "Could not save your registration. Please try again." };
+    return {
+      error: `Could not save your registration (${profileError.message}). Please try again or tell an admin.`,
+      values: echo(formData),
+    };
   }
 
   await notify(await adminRecipients(), {
