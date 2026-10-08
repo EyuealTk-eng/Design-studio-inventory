@@ -63,7 +63,7 @@ export function RequestBuilder({
         const data = new FormData(e.currentTarget);
         startTransition(() => action(data));
       }}
-      className="grid gap-6 lg:grid-cols-[1fr_24rem]"
+      className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]"
     >
       <input type="hidden" name="lines" value={JSON.stringify(lines)} />
 

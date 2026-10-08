@@ -67,7 +67,7 @@ export default async function ItemPage({ params, searchParams }: PageProps<"/inv
           <Alert>{error}</Alert>
         </div>
       )}
-      <div className="grid gap-6 xl:grid-cols-[1fr_22rem]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <Card className="no-print p-6">
           <ItemForm item={item} categories={categories} />
         </Card>

@@ -50,7 +50,7 @@ export default async function RequestPage({ params, searchParams }: PageProps<"/
         {typeof sent === "string" && <Alert tone="green">Message sent to the student by {sent}.</Alert>}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_24rem]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="flex flex-col gap-6">
           <Card className="overflow-hidden">
             <h2 className="border-b border-line px-5 py-4 font-semibold">Items</h2>
