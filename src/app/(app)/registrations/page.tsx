@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
-import { Check, UserCheck, X } from "lucide-react";
+import { Check, Trash2, UserCheck, X } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { notify } from "@/lib/notify";
 import { formatDate } from "@/lib/dates";
 import { formatPhone } from "@/lib/phone";
 import type { Profile } from "@/lib/types";
-import { Badge, Card, EmptyState, PageHeader, cx } from "@/components/ui";
+import { Alert, Badge, Card, EmptyState, PageHeader, cx } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
+import { ConfirmSubmit } from "@/components/confirm-submit";
+import { deleteAccount } from "./actions";
 
 export const metadata: Metadata = { title: "Registrations" };
 
@@ -38,7 +40,7 @@ async function decide(formData: FormData) {
   if (user) {
     await notify([user], {
       kind: status === "approved" ? "account_approved" : "account_rejected",
-      title: status === "approved" ? "Your studio account is approved" : "Your registration was not approved",
+      title: status === "approved" ? "Your studio account is approved" : "Your studio access was revoked",
       body:
         status === "approved"
           ? `Welcome! Sign in with your student ID (${user.student_id}) and the password you chose.`
@@ -47,7 +49,7 @@ async function decide(formData: FormData) {
       sms:
         status === "approved"
           ? `Your studio inventory account is approved. Sign in with your student ID ${user.student_id}.`
-          : "Your studio inventory registration was not approved. Please contact the studio admins.",
+          : "Your studio inventory access was revoked. Please contact the studio admins.",
       dedupeKey: `account:${status}:${new Date().toISOString().slice(0, 10)}`,
     });
   }
@@ -58,12 +60,12 @@ async function decide(formData: FormData) {
 const TABS = [
   { key: "pending", label: "Waiting" },
   { key: "approved", label: "Approved" },
-  { key: "rejected", label: "Rejected" },
+  { key: "rejected", label: "Access revoked" },
 ] as const;
 
 export default async function RegistrationsPage({ searchParams }: PageProps<"/registrations">) {
   const me = await requireAdmin();
-  const { tab: rawTab } = await searchParams;
+  const { tab: rawTab, msg, err } = await searchParams;
   const tab = TABS.some((t) => t.key === rawTab) ? (rawTab as string) : "pending";
   const supabase = await createClient();
   const { data } = await supabase
@@ -77,6 +79,12 @@ export default async function RegistrationsPage({ searchParams }: PageProps<"/re
   return (
     <>
       <PageHeader title="Registrations" description="Students who signed up and are waiting for access." />
+      {(typeof msg === "string" || typeof err === "string") && (
+        <div className="mb-4">
+          {typeof msg === "string" && <Alert tone="green">{msg}</Alert>}
+          {typeof err === "string" && <Alert>{err}</Alert>}
+        </div>
+      )}
       <nav aria-label="Registration status" className="mb-4 flex gap-2">
         {TABS.map((t) => (
           <Link
@@ -113,24 +121,44 @@ export default async function RegistrationsPage({ searchParams }: PageProps<"/re
                   <p className="text-xs text-muted">Registered {formatDate(p.created_at)}</p>
                 </div>
                 {p.id !== me.id && (
-                  <form action={decide} className="flex flex-wrap gap-2">
-                    <input type="hidden" name="id" value={p.id} />
-                    {p.status !== "approved" && (
-                      <SubmitButton name="decision" value="approve">
-                        <Check className="size-4" aria-hidden /> Approve
-                      </SubmitButton>
+                  <div className="flex flex-wrap gap-2">
+                    <form action={decide} className="flex flex-wrap gap-2">
+                      <input type="hidden" name="id" value={p.id} />
+                      {p.status !== "approved" && (
+                        <SubmitButton name="decision" value="approve">
+                          <Check className="size-4" aria-hidden /> {p.status === "rejected" ? "Restore access" : "Approve"}
+                        </SubmitButton>
+                      )}
+                      {p.status === "approved" && (
+                        <SubmitButton name="decision" value="reject" variant="danger">
+                          <X className="size-4" aria-hidden /> Revoke access
+                        </SubmitButton>
+                      )}
+                      {p.status === "approved" && (
+                        <SubmitButton name="decision" value={p.role === "admin" ? "student" : "admin"} variant="secondary">
+                          {p.role === "admin" ? "Remove admin" : "Make admin"}
+                        </SubmitButton>
+                      )}
+                    </form>
+                    {p.role !== "admin" && (
+                      <form action={deleteAccount}>
+                        <input type="hidden" name="id" value={p.id} />
+                        <input type="hidden" name="tab" value={tab} />
+                        {p.status === "pending" ? (
+                          <>
+                            <input type="hidden" name="reason" value="reject" />
+                            <ConfirmSubmit message={`Reject and delete the registration for ${p.full_name} (${p.student_id})? The student ID becomes free to register again.`}>
+                              <X className="size-4" aria-hidden /> Reject
+                            </ConfirmSubmit>
+                          </>
+                        ) : (
+                          <ConfirmSubmit message={`Permanently delete ${p.full_name}'s account (${p.student_id})? This can't be undone.`}>
+                            <Trash2 className="size-4" aria-hidden /> Delete account
+                          </ConfirmSubmit>
+                        )}
+                      </form>
                     )}
-                    {p.status !== "rejected" && (
-                      <SubmitButton name="decision" value="reject" variant="danger">
-                        <X className="size-4" aria-hidden /> {p.status === "approved" ? "Revoke access" : "Reject"}
-                      </SubmitButton>
-                    )}
-                    {p.status === "approved" && (
-                      <SubmitButton name="decision" value={p.role === "admin" ? "student" : "admin"} variant="secondary">
-                        {p.role === "admin" ? "Remove admin" : "Make admin"}
-                      </SubmitButton>
-                    )}
-                  </form>
+                  </div>
                 )}
               </li>
             ))}

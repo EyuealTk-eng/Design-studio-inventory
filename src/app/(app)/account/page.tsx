@@ -14,9 +14,11 @@ async function savePhone(formData: FormData) {
   const me = await requireUser();
   const raw = String(formData.get("phone") ?? "");
   const phone = normalisePhone(raw);
-  if (raw.trim() && !phone) redirect("/account?error=1");
+  if (!raw.trim()) redirect("/account?error=required");
+  if (!phone) redirect("/account?error=invalid");
   // Users may only change their own phone; RLS doesn't let students update profiles directly.
-  await createAdminClient().from("profiles").update({ phone }).eq("id", me.id);
+  const { error } = await createAdminClient().from("profiles").update({ phone }).eq("id", me.id);
+  if (error) redirect(`/account?error=${error.code === "23505" ? "taken" : "invalid"}`);
   revalidatePath("/account");
   redirect("/account?saved=1");
 }
@@ -49,13 +51,19 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
         <Card className="p-6">
           <form action={savePhone} className="flex flex-col gap-4">
             {saved && <Alert tone="green">Phone number saved.</Alert>}
-            {error && <Alert>That doesn&apos;t look like a phone number. Try 0911 234 567.</Alert>}
+            {!me.phone && !error && me.role === "student" && (
+              <Alert tone="blue">Add your phone number — you can&apos;t borrow items until you do.</Alert>
+            )}
+            {error === "required" && <Alert>Your phone number is required.</Alert>}
+            {error === "invalid" && <Alert>That doesn&apos;t look like a phone number. Try 0911 234 567.</Alert>}
+            {error === "taken" && <Alert>That phone number is already used by another account.</Alert>}
             <Field
-              label="Phone number for SMS reminders"
+              label="Phone number"
               htmlFor="phone"
-              hint={me.phone ? `Currently ${formatPhone(me.phone)}. Leave empty to stop SMS.` : "Add your number to get SMS reminders."}
+              hint={me.phone ? `Currently ${formatPhone(me.phone)}.` : "Required for SMS return reminders."}
+              required
             >
-              <Input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" defaultValue={me.phone ? formatPhone(me.phone) : ""} placeholder="0911 234 567" />
+              <Input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" defaultValue={me.phone ? formatPhone(me.phone) : ""} placeholder="0911 234 567" required />
             </Field>
             <div>
               <SubmitButton pendingText="Saving…">Save</SubmitButton>

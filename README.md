@@ -37,7 +37,7 @@ Without email/SMS settings, emails and SMS are printed to the terminal instead o
 
 1. **Create a Supabase project** (free tier is fine) at <https://supabase.com>.
 2. **Create the database**: open *SQL Editor* and run each file in `supabase/migrations/` in order
-   (`0001_init.sql`, then `0002_phone_sms.sql`), or `npx supabase link` then `npx supabase db push`.
+   (`0001_init.sql`, `0002_phone_sms.sql`, then `0003_registration_and_borrowing_rules.sql`), or `npx supabase link` then `npx supabase db push`.
 3. In Supabase *Authentication → Providers → Email*, turn **off** "Confirm email" (admins approve accounts instead) and set the minimum password length to 8.
 4. **Email** — easiest is the studio's own Gmail account:
    turn on 2-Step Verification, then create an *App password* (Google Account → Security → App passwords) and set

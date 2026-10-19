@@ -28,6 +28,9 @@ export async function createRequest(
   formData: FormData,
 ): Promise<RequestFormState> {
   const profile = await requireUser();
+  if (profile.role === "student" && !profile.phone) {
+    return { error: "Add your phone number in My account before borrowing." };
+  }
   let lines: unknown;
   try {
     lines = JSON.parse(String(formData.get("lines") ?? "[]"));
@@ -50,7 +53,7 @@ export async function createRequest(
 
   const letter = formData.get("letter");
   if (!(letter instanceof File) || letter.size === 0)
-    return { fieldErrors: { letter: "Attach your request letter (PDF)" } };
+    return { fieldErrors: { letter: "Download the request form, fill it in and upload it as a PDF" } };
   if (letter.type !== "application/pdf" && !letter.name.toLowerCase().endsWith(".pdf"))
     return { fieldErrors: { letter: "The letter must be a PDF" } };
   if (letter.size > 5 * 1024 * 1024) return { fieldErrors: { letter: "PDF must be 5 MB or smaller" } };

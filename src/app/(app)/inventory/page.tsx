@@ -33,13 +33,16 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
   const categories = [...new Set(all.map((i) => i.category))].sort();
 
   const needle = q.toLowerCase();
+  // Students only ever see in stock / out of stock — no counts, location, condition or low-stock levels.
   const items = all.filter(
     (i) =>
       (!needle ||
-        [i.name, i.sku, i.location, i.category].some((f) => f?.toLowerCase().includes(needle))) &&
+        [i.name, i.sku, isAdmin ? i.location : null, i.category].some((f) => f?.toLowerCase().includes(needle))) &&
       (!category || i.category === category) &&
-      (filter !== "low" || isLowStock(i)) &&
-      (filter !== "out" || i.available_qty < i.total_qty),
+      (!isAdmin || filter !== "low" || isLowStock(i)) &&
+      (!isAdmin || filter !== "out" || i.available_qty < i.total_qty) &&
+      (isAdmin || filter !== "in" || i.available_qty > 0) &&
+      (isAdmin || filter !== "none" || i.available_qty === 0),
   );
   const lowCount = all.filter(isLowStock).length;
 
@@ -102,7 +105,7 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
           {filter && <input type="hidden" name="filter" value={filter} />}
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted" aria-hidden />
-            <Input name="q" defaultValue={q} placeholder="Search name, code or location…" aria-label="Search items" className="pl-10" />
+            <Input name="q" defaultValue={q} placeholder={isAdmin ? "Search name, code or location…" : "Search items…"} aria-label="Search items" className="pl-10" />
           </div>
           <Select name="category" defaultValue={category} aria-label="Category" className="sm:w-56">
             <option value="">All categories</option>
@@ -116,8 +119,17 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
         </form>
         <div className="flex flex-wrap gap-2 border-b border-line px-4 py-3">
           {chip("", "All")}
-          {chip("low", `Low stock (${lowCount})`)}
-          {chip("out", "Currently borrowed")}
+          {isAdmin ? (
+            <>
+              {chip("low", `Low stock (${lowCount})`)}
+              {chip("out", "Currently borrowed")}
+            </>
+          ) : (
+            <>
+              {chip("in", "In stock")}
+              {chip("none", "Out of stock")}
+            </>
+          )}
         </div>
 
         {items.length === 0 ? (
@@ -131,9 +143,9 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
                 <tr>
                   <th scope="col" className="px-4 py-3">Item</th>
                   <th scope="col" className="hidden px-4 py-3 sm:table-cell">Category</th>
-                  <th scope="col" className="hidden px-4 py-3 md:table-cell">Location</th>
-                  <th scope="col" className="px-4 py-3">Available</th>
-                  <th scope="col" className="hidden px-4 py-3 lg:table-cell">Condition</th>
+                  {isAdmin && <th scope="col" className="hidden px-4 py-3 md:table-cell">Location</th>}
+                  <th scope="col" className="px-4 py-3">{isAdmin ? "Available" : "Status"}</th>
+                  {isAdmin && <th scope="col" className="hidden px-4 py-3 lg:table-cell">Condition</th>}
                   <th scope="col" className="px-4 py-3"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
@@ -148,18 +160,24 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
                       </p>
                     </td>
                     <td className="hidden px-4 py-3 sm:table-cell"><Badge tone="gray">{item.category}</Badge></td>
-                    <td className="hidden px-4 py-3 text-muted md:table-cell">{item.location ?? "—"}</td>
+                    {isAdmin && <td className="hidden px-4 py-3 text-muted md:table-cell">{item.location ?? "—"}</td>}
                     <td className="px-4 py-3">
-                      <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
-                        <StockMeter available={item.available_qty} total={item.total_qty} threshold={item.low_stock_threshold} />
-                        {item.available_qty === 0 ? (
-                          <Badge tone="red">Out</Badge>
-                        ) : isLowStock(item) ? (
-                          <Badge tone="amber">Low</Badge>
-                        ) : null}
-                      </div>
+                      {isAdmin ? (
+                        <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
+                          <StockMeter available={item.available_qty} total={item.total_qty} threshold={item.low_stock_threshold} />
+                          {item.available_qty === 0 ? (
+                            <Badge tone="red">Out</Badge>
+                          ) : isLowStock(item) ? (
+                            <Badge tone="amber">Low</Badge>
+                          ) : null}
+                        </div>
+                      ) : item.available_qty > 0 ? (
+                        <Badge tone="green">In stock</Badge>
+                      ) : (
+                        <Badge tone="red">Out of stock</Badge>
+                      )}
                     </td>
-                    <td className="hidden px-4 py-3 text-muted lg:table-cell">{item.condition}</td>
+                    {isAdmin && <td className="hidden px-4 py-3 text-muted lg:table-cell">{item.condition}</td>}
                     <td className="px-4 py-3 text-right">
                       {isAdmin ? (
                         <Link href={`/inventory/${item.id}`} className="font-semibold text-brand-700 hover:underline">
@@ -169,9 +187,7 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
                         <Link href={`/requests/new?item=${item.id}`} className="font-semibold text-brand-700 hover:underline">
                           Borrow<span className="sr-only"> {item.name}</span>
                         </Link>
-                      ) : (
-                        <span className="text-xs text-muted">Unavailable</span>
-                      )}
+                      ) : null}
                     </td>
                   </tr>
                 ))}

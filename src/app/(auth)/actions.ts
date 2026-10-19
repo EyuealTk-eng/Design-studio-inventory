@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminRecipients, notify } from "@/lib/notify";
 import { normalisePhone } from "@/lib/phone";
+import { canonicalStudentId, STUDENT_ID_PATTERN } from "@/lib/student-id";
 
 export interface FormState {
   error?: string;
@@ -21,24 +22,34 @@ function echo(formData: FormData) {
   return values;
 }
 
-const normaliseId = (id: string) => id.trim().toUpperCase();
+const normaliseId = canonicalStudentId;
+const nameField = (label: string) =>
+  z
+    .string()
+    .trim()
+    .min(1, `Enter your ${label}`)
+    .max(60)
+    .regex(/^[\p{L}][\p{L}' .-]*$/u, `Use letters only for your ${label}`);
 
 const signupSchema = z
   .object({
-    full_name: z.string().trim().min(3, "Enter your full name").max(120),
+    first_name: nameField("first name"),
+    last_name: nameField("last name"),
     student_id: z
       .string()
-      .trim()
-      .min(3, "Enter your student ID")
-      .max(40)
-      .regex(/^[A-Za-z0-9/_-]+$/, "Use letters, numbers, / - or _ only"),
+      .transform(canonicalStudentId)
+      .refine((v) => v.length > 0, "Enter your student ID")
+      .refine((v) => STUDENT_ID_PATTERN.test(v), "Use the format on your ID card, e.g. UGR/2154/17"),
     email: z.string().trim().toLowerCase().email("Enter a valid email address"),
     phone: z
       .string()
       .transform((v) => normalisePhone(v))
       .refine((v): v is string => v !== null, "Enter a phone number like 0911 234 567"),
     department: z.string().trim().min(2, "Enter your department").max(120),
-    year: z.coerce.number().int().min(1, "Choose your year").max(8),
+    year: z
+      .string({ error: "Choose your year" })
+      .regex(/^[1-8]$/, "Choose your year")
+      .transform(Number),
     password: z.string().min(8, "Use at least 8 characters").max(72),
     confirm: z.string(),
   })
@@ -51,13 +62,14 @@ export async function signup(_prev: FormState, formData: FormData): Promise<Form
     for (const issue of parsed.error.issues) fieldErrors[String(issue.path[0])] ??= issue.message;
     return { fieldErrors, values: echo(formData) };
   }
-  const v = parsed.data;
-  const studentId = normaliseId(v.student_id);
+  const v = { ...parsed.data, full_name: `${parsed.data.first_name} ${parsed.data.last_name}` };
+  const studentId = v.student_id;
   const db = createAdminClient();
 
-  const [{ count: idTaken, error: lookupError }, { count: emailTaken }] = await Promise.all([
-    db.from("profiles").select("id", { count: "exact", head: true }).eq("student_id", studentId),
+  const [{ data: idOwner, error: lookupError }, { count: emailTaken }, { count: phoneTaken }] = await Promise.all([
+    db.from("profiles").select("id, full_name, status").eq("student_id", studentId).maybeSingle(),
     db.from("profiles").select("id", { count: "exact", head: true }).eq("email", v.email),
+    db.from("profiles").select("id", { count: "exact", head: true }).eq("phone", v.phone),
   ]);
   if (lookupError) {
     console.error("signup: profiles lookup failed", lookupError);
@@ -66,8 +78,24 @@ export async function signup(_prev: FormState, formData: FormData): Promise<Form
       values: echo(formData),
     };
   }
-  if (idTaken) return { fieldErrors: { student_id: "This student ID is already registered" }, values: echo(formData) };
+  if (idOwner) {
+    // Someone may be trying to use another student's ID: tell the admins.
+    await notify(await adminRecipients(), {
+      kind: "signup",
+      title: `Duplicate student ID attempt: ${studentId}`,
+      body: `${v.full_name} (${v.email}, ${v.phone}) tried to register with ${studentId}, which already belongs to ${idOwner.full_name} (${idOwner.status}). If the existing account isn't the real owner, delete it on the Registrations page.`,
+      link: "/registrations?tab=" + idOwner.status,
+      dedupeKey: `dup-id:${studentId}:${v.email}`,
+    });
+    return {
+      fieldErrors: {
+        student_id: "This student ID is already registered. If it's yours and you didn't register it, contact the studio admins — they've been notified.",
+      },
+      values: echo(formData),
+    };
+  }
   if (emailTaken) return { fieldErrors: { email: "This email is already registered" }, values: echo(formData) };
+  if (phoneTaken) return { fieldErrors: { phone: "This phone number is already registered" }, values: echo(formData) };
 
   const { data: created, error } = await db.auth.admin.createUser({
     email: v.email,
@@ -101,6 +129,11 @@ export async function signup(_prev: FormState, formData: FormData): Promise<Form
   if (profileError) {
     console.error("signup: profile insert failed", profileError);
     await db.auth.admin.deleteUser(created.user.id);
+    if (profileError.code === "23505") {
+      // Unique constraint lost a race with a simultaneous registration.
+      const field = profileError.message.includes("phone") ? "phone" : profileError.message.includes("email") ? "email" : "student_id";
+      return { fieldErrors: { [field]: "This is already registered" }, values: echo(formData) };
+    }
     return {
       error: `Could not save your registration (${profileError.message}). Please try again or tell an admin.`,
       values: echo(formData),
@@ -122,7 +155,8 @@ export async function signup(_prev: FormState, formData: FormData): Promise<Form
 }
 
 export async function login(_prev: FormState, formData: FormData): Promise<FormState> {
-  const studentId = normaliseId(String(formData.get("student_id") ?? ""));
+  const rawId = String(formData.get("student_id") ?? "");
+  const studentId = normaliseId(rawId);
   const password = String(formData.get("password") ?? "");
   const values = { student_id: studentId };
   if (!studentId || !password) return { error: "Enter your student ID and password", values };
@@ -131,7 +165,9 @@ export async function login(_prev: FormState, formData: FormData): Promise<FormS
   const { data: profile } = await createAdminClient()
     .from("profiles")
     .select("email")
-    .eq("student_id", studentId)
+    // canonical spelling first; also accept IDs saved before canonicalisation
+    .in("student_id", [...new Set([studentId, rawId.trim().toUpperCase()])])
+    .limit(1)
     .maybeSingle();
   if (!profile) return generic;
 

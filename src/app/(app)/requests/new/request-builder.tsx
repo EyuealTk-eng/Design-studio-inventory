@@ -2,12 +2,23 @@
 
 import { startTransition, useActionState, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { FileText, Loader2, Minus, PackageSearch, Plus, Search, Trash2, Upload } from "lucide-react";
+import { CheckCircle2, Download, FileText, Loader2, Lock, Minus, PackageSearch, Plus, Search, Trash2, Upload } from "lucide-react";
 import { createRequest, type RequestFormState } from "../actions";
 import { Alert, Badge, Button, Card, Field, Input, Textarea, cx } from "@/components/ui";
-import type { Item } from "@/lib/types";
 
-type PickItem = Pick<Item, "id" | "name" | "category" | "sku" | "location" | "available_qty" | "total_qty">;
+export interface BorrowableItem {
+  id: string;
+  name: string;
+  category: string;
+  sku: string | null;
+  inStock: boolean;
+  /** Available count — only sent to admins. Students are capped server-side. */
+  max?: number;
+}
+
+/** Per-line ceiling when the real count is hidden; the server rejects anything above stock. */
+const HIDDEN_MAX = 20;
+const TEMPLATE_URL = "/request-template.pdf";
 
 function addDays(date: string, days: number) {
   const d = new Date(`${date}T00:00:00Z`);
@@ -17,10 +28,12 @@ function addDays(date: string, days: number) {
 
 export function RequestBuilder({
   items,
+  showCounts,
   initialItemId,
   today,
 }: {
-  items: PickItem[];
+  items: BorrowableItem[];
+  showCounts: boolean;
   initialItemId?: string;
   today: string;
 }) {
@@ -28,24 +41,25 @@ export function RequestBuilder({
   const reduce = useReducedMotion();
   const [query, setQuery] = useState("");
   const [cart, setCart] = useState<Record<string, number>>(() => {
-    const first = items.find((i) => i.id === initialItemId && i.available_qty > 0);
+    const first = items.find((i) => i.id === initialItemId && i.inStock);
     return first ? { [first.id]: 1 } : {};
   });
   const [due, setDue] = useState(addDays(today, 14));
   const [letterName, setLetterName] = useState("");
+  // The official request form must be downloaded (and filled in) for every request.
+  const [templateTaken, setTemplateTaken] = useState(false);
   const fe = state.fieldErrors ?? {};
 
   const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return items
-      .filter((i) => !q || [i.name, i.category, i.sku].some((f) => f?.toLowerCase().includes(q)))
-      .slice(0, 40);
+    return items.filter((i) => !q || [i.name, i.category, i.sku].some((f) => f?.toLowerCase().includes(q)));
   }, [items, query]);
 
   const setQty = (id: string, qty: number) =>
     setCart((c) => {
-      const max = byId.get(id)?.available_qty ?? 0;
+      const it = byId.get(id);
+      const max = !it?.inStock ? 0 : (it.max ?? HIDDEN_MAX);
       const next = { ...c };
       if (qty <= 0) delete next[id];
       else next[id] = Math.min(qty, max);
@@ -88,29 +102,32 @@ export function RequestBuilder({
             No items match “{query}”.
           </div>
         ) : (
-          <ul className="max-h-[34rem] divide-y divide-line overflow-y-auto">
+          // Phones: the list grows with the page so it scrolls naturally; desktop: its own scroll area.
+          <ul className="divide-y divide-line lg:max-h-[38rem] lg:overflow-y-auto lg:overscroll-contain">
             {results.map((item) => {
               const inCart = cart[item.id] ?? 0;
-              const none = item.available_qty === 0;
+              const none = !item.inStock;
+              const max = item.max ?? HIDDEN_MAX;
               return (
                 <li key={item.id} className={cx("flex items-center gap-3 px-4 py-3", inCart > 0 && "bg-brand-50/60")}>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{item.name}</p>
-                    <p className="text-xs text-muted">
-                      {item.category}
-                      {item.location && ` · ${item.location}`}
-                    </p>
+                    <p className="text-xs text-muted">{item.category}</p>
                   </div>
-                  {none ? (
-                    <Badge tone="gray">Unavailable</Badge>
+                  {showCounts ? (
+                    none ? (
+                      <Badge tone="gray">Out of stock</Badge>
+                    ) : (
+                      <span className="text-sm tabular-nums text-muted">
+                        <b className="text-ink">{item.max}</b> available
+                      </span>
+                    )
                   ) : (
-                    <span className="text-sm tabular-nums text-muted">
-                      <b className="text-ink">{item.available_qty}</b> available
-                    </span>
+                    none && <Badge tone="gray">Out of stock</Badge>
                   )}
                   <button
                     type="button"
-                    disabled={none || inCart >= item.available_qty}
+                    disabled={none || inCart >= max}
                     onClick={() => setQty(item.id, inCart + 1)}
                     className="grid size-11 shrink-0 place-items-center rounded-xl bg-brand-600 text-white transition-colors hover:bg-brand-700 disabled:bg-slate-200 disabled:text-slate-400"
                     aria-label={`Add one ${item.name}`}
@@ -154,7 +171,7 @@ export function RequestBuilder({
                           {qty === 1 ? <Trash2 className="size-4" aria-hidden /> : <Minus className="size-4" aria-hidden />}
                         </button>
                         <span className="w-7 text-center font-semibold tabular-nums" aria-live="polite">{qty}</span>
-                        <button type="button" onClick={() => setQty(item_id, qty + 1)} disabled={qty >= item.available_qty} className="grid size-9 place-items-center rounded-lg text-muted hover:bg-brand-50 disabled:opacity-40" aria-label={`Add one ${item.name}`}>
+                        <button type="button" onClick={() => setQty(item_id, qty + 1)} disabled={qty >= (item.max ?? HIDDEN_MAX)} className="grid size-9 place-items-center rounded-lg text-muted hover:bg-brand-50 disabled:opacity-40" aria-label={`Add one ${item.name}`}>
                           <Plus className="size-4" aria-hidden />
                         </button>
                       </div>
@@ -168,13 +185,13 @@ export function RequestBuilder({
 
         <Card className="flex flex-col gap-4 p-5">
           {state.error && <Alert>{state.error}</Alert>}
-          <Field label="Project" htmlFor="project" error={fe.project}>
+          <Field label="Project" htmlFor="project" error={fe.project} required>
             <Input id="project" name="project" required placeholder="e.g. Low-cost pulse oximeter" />
           </Field>
           <Field label="Purpose (optional)" htmlFor="purpose" error={fe.purpose}>
             <Textarea id="purpose" name="purpose" className="min-h-20" placeholder="What will you use the items for?" />
           </Field>
-          <Field label="Return by" htmlFor="due_date" error={fe.due_date}>
+          <Field label="Return by" htmlFor="due_date" error={fe.due_date} required>
             <Input id="due_date" name="due_date" type="date" min={today} value={due} onChange={(e) => setDue(e.target.value)} required />
             <div className="flex flex-wrap gap-1.5">
               {[
@@ -196,23 +213,63 @@ export function RequestBuilder({
               ))}
             </div>
           </Field>
-          <Field label="Request letter (PDF)" htmlFor="letter" error={fe.letter} hint="Your formal letter listing the items you need. Max 5 MB.">
-            <label
-              htmlFor="letter"
+          <div className="flex flex-col gap-2 rounded-2xl border border-brand-100 bg-brand-50/60 p-4">
+            <p className="text-sm font-semibold text-ink">
+              Request form<span className="ml-0.5 text-bad" aria-hidden>*</span>
+            </p>
+            <ol className="list-inside list-decimal text-sm text-muted">
+              <li>Download the Project Materials Request form</li>
+              <li>Fill it in and save it as a PDF</li>
+              <li>Upload it below</li>
+            </ol>
+            <a
+              href={TEMPLATE_URL}
+              download="Project-Materials-Request-Form.pdf"
+              onClick={() => setTemplateTaken(true)}
               className={cx(
-                "relative flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed px-4 py-3 text-sm transition-colors",
-                letterName ? "border-brand-300 bg-brand-50" : "border-line hover:border-brand-300",
+                "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-colors",
+                templateTaken ? "border border-line bg-white text-ink hover:bg-brand-50" : "bg-brand-600 text-white hover:bg-brand-700",
               )}
             >
-              {letterName ? <FileText className="size-5 text-brand-600" aria-hidden /> : <Upload className="size-5 text-muted" aria-hidden />}
-              <span className="truncate font-medium">{letterName || "Choose PDF…"}</span>
+              {templateTaken ? <CheckCircle2 className="size-4 text-ok" aria-hidden /> : <Download className="size-4" aria-hidden />}
+              {templateTaken ? "Form downloaded — download again" : "Download request form (PDF)"}
+            </a>
+          </div>
+          <Field
+            label="Upload the filled-in form (PDF)"
+            htmlFor="letter"
+            error={fe.letter}
+            hint={templateTaken ? "Max 5 MB." : "Download the request form first."}
+            required
+          >
+            <label
+              htmlFor="letter"
+              aria-disabled={!templateTaken}
+              className={cx(
+                "relative flex min-h-14 items-center gap-3 rounded-xl border-2 border-dashed px-4 py-3 text-sm transition-colors",
+                !templateTaken
+                  ? "cursor-not-allowed border-line bg-surface text-muted"
+                  : letterName
+                    ? "cursor-pointer border-brand-300 bg-brand-50"
+                    : "cursor-pointer border-line hover:border-brand-300",
+              )}
+            >
+              {!templateTaken ? (
+                <Lock className="size-5 text-muted" aria-hidden />
+              ) : letterName ? (
+                <FileText className="size-5 text-brand-600" aria-hidden />
+              ) : (
+                <Upload className="size-5 text-muted" aria-hidden />
+              )}
+              <span className="truncate font-medium">{letterName || (templateTaken ? "Choose PDF…" : "Locked until you download the form")}</span>
               <input
                 id="letter"
                 name="letter"
                 type="file"
                 accept="application/pdf,.pdf"
                 required
-                className="absolute inset-0 cursor-pointer opacity-0"
+                disabled={!templateTaken}
+                className="absolute inset-0 cursor-pointer opacity-0 disabled:cursor-not-allowed"
                 onChange={(e) => setLetterName(e.target.files?.[0]?.name ?? "")}
               />
             </label>

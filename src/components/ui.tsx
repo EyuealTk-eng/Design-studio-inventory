@@ -106,17 +106,26 @@ export function Field({
   error,
   children,
   htmlFor,
+  required,
 }: {
   label: string;
   hint?: string;
   error?: string;
   children: ReactNode;
   htmlFor: string;
+  /** Shows a red asterisk after the label. */
+  required?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor={htmlFor} className="text-sm font-semibold text-ink">
         {label}
+        {required && (
+          <>
+            <span className="ml-0.5 text-bad" aria-hidden>*</span>
+            <span className="sr-only"> (required)</span>
+          </>
+        )}
       </label>
       {children}
       {hint && !error && <p className="text-xs text-muted">{hint}</p>}
