@@ -42,6 +42,7 @@ export async function deleteAccount(formData: FormData) {
       kind: "account_rejected",
       title: "Your registration was not approved",
       body: "Please contact the Biomedical Design Studio admins if you think this is a mistake. You can register again with the correct details.",
+      details: [["Student ID", user!.student_id]],
       link: "/signup",
       sms: "Your studio inventory registration was not approved. Please contact the studio admins.",
       dedupeKey: `account:rejected:${Date.now()}`,

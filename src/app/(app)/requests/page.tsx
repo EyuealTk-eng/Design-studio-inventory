@@ -77,12 +77,12 @@ export default async function RequestsPage({ searchParams }: PageProps<"/request
           </EmptyState>
         ) : (
           <ul className="divide-y divide-line">
-            {requests.map((r) => {
+            {requests.map((r, i) => {
               const overdue = r.status === "approved" && r.due_date < t;
               const items = r.request_items ?? [];
               return (
-                <li key={r.id}>
-                  <Link href={`/requests/${r.id}`} className="flex flex-col gap-2 px-5 py-4 transition-colors hover:bg-brand-50/40 sm:flex-row sm:items-center sm:gap-6">
+                <li key={r.id} className="enter-up" style={{ animationDelay: `${Math.min(i, 12) * 40}ms` }}>
+                  <Link href={`/requests/${r.id}`} className="flex flex-col gap-2 px-5 py-4 transition-colors hover:bg-brand-50/40 active:bg-brand-100/50 sm:flex-row sm:items-center sm:gap-6">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-semibold text-ink">{r.project}</p>

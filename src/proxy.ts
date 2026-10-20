@@ -25,13 +25,17 @@ export async function proxy(request: NextRequest) {
     },
   });
 
+  // Reads the session from the cookie and refreshes it when it has expired. No call to the
+  // auth server on ordinary requests: this redirect is only a fast first check — every page and
+  // action verifies the user again in the database (getAppContext / RLS).
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const signedIn = !!session; // (reading session.user here would log a warning on every request)
 
   const path = request.nextUrl.pathname;
   const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p));
-  if (!user && !isPublic && path !== "/") {
+  if (!signedIn && !isPublic && path !== "/") {
     const login = request.nextUrl.clone();
     login.pathname = "/login";
     return NextResponse.redirect(login);

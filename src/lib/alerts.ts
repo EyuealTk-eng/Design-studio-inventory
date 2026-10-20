@@ -52,7 +52,13 @@ export async function runAlerts() {
       sent.dueSoon += await notify([row.profiles], {
         kind: "due_soon",
         title: `Return reminder: ${dueLabel(row.due_date, t)}`,
-        body: `Please return ${itemList(row)} (project "${row.project}") by ${formatDate(row.due_date)}.`,
+        body: "Your return date is coming up. Please bring the items back to the studio on time.",
+        details: [
+          ["Project", row.project],
+          ["Items", itemList(row).replaceAll(", ", "\n")],
+          ["Return by", formatDate(row.due_date)],
+          ["Time left", dueLabel(row.due_date, t)],
+        ],
         link,
         dedupeKey: `due-soon:${row.id}`,
         sms: `Reminder: please return ${itemList(row)} to the studio by ${formatDate(row.due_date)}.`,
@@ -62,7 +68,13 @@ export async function runAlerts() {
       sent.overdue += await notify([row.profiles], {
         kind: "overdue",
         title: `Overdue: please return your items`,
-        body: `${itemList(row)} for project "${row.project}" was due ${formatDate(row.due_date)} (${dueLabel(row.due_date, t)}).`,
+        body: "These items are past their return date. Please return them to the studio as soon as possible.",
+        details: [
+          ["Project", row.project],
+          ["Items", itemList(row).replaceAll(", ", "\n")],
+          ["Was due", formatDate(row.due_date)],
+          ["Overdue by", dueLabel(row.due_date, t).replace(" overdue", "")],
+        ],
         link,
         dedupeKey: `overdue:${row.id}:${Math.floor((-n - 1) / 7)}`,
         sms: `OVERDUE: ${itemList(row)} was due ${formatDate(row.due_date)}. Please return it to the studio as soon as possible.`,
@@ -72,14 +84,14 @@ export async function runAlerts() {
 
   // 2. Admins: one daily digest of near-due and overdue borrowers.
   if (due && due.length > 0) {
-    const lines = due.map(
-      (r) =>
-        `• ${r.profiles.full_name} (${r.profiles.student_id}) — ${itemList(r)} — ${dueLabel(r.due_date, t)}`,
-    );
     sent.adminDigest += await notify(admins, {
       kind: "admin_due",
       title: `${due.length} borrowed request${due.length === 1 ? "" : "s"} due soon or overdue`,
-      body: lines.join("\n"),
+      body: "These borrowers have items due soon or overdue. Reminders were sent to them automatically.",
+      details: due.map((r) => [
+        `${r.profiles.full_name} (${r.profiles.student_id})`,
+        `${itemList(r)} — ${dueLabel(r.due_date, t)}`,
+      ] as [string, string]),
       link: "/requests?filter=due",
       dedupeKey: `admin-due:${t}`,
       sms: `${due.length} borrow request${due.length === 1 ? " is" : "s are"} due soon or overdue. See the inventory site.`,
@@ -96,7 +108,11 @@ export async function runAlerts() {
         untilCheckin === 0
           ? "Monthly check-in is today"
           : `Monthly check-in in ${untilCheckin} day${untilCheckin === 1 ? "" : "s"}`,
-      body: `The monthly inventory check-in is on ${formatDate(checkin)}. The check-in page lists what is out, overdue and left in stock.`,
+      body: "Time to count the inventory. The check-in page lists what is out, overdue and left in stock, with a printable count sheet.",
+      details: [
+        ["Check-in date", formatDate(checkin)],
+        ["When", untilCheckin === 0 ? "Today" : `In ${untilCheckin} day${untilCheckin === 1 ? "" : "s"}`],
+      ],
       link: "/checkin",
       dedupeKey: untilCheckin === 0 ? `checkin-day:${checkin}` : `checkin:${checkin}`,
       sms: `Monthly inventory check-in ${untilCheckin === 0 ? "is today" : `in ${untilCheckin} day${untilCheckin === 1 ? "" : "s"}`} (${formatDate(checkin)}).`,
@@ -112,9 +128,8 @@ export async function runAlerts() {
     sent.lowStock += await notify(admins, {
       kind: "low_stock",
       title: `${low.length} item${low.length === 1 ? " is" : "s are"} low — consider ordering more`,
-      body: low
-        .map((i) => `• ${i.name}: ${i.available_qty} available of ${i.total_qty} (alert at ${i.low_stock_threshold})`)
-        .join("\n"),
+      body: "These items are at or below their low-stock level. Consider ordering more.",
+      details: low.map((i) => [i.name, `${i.available_qty} of ${i.total_qty} left (alert at ${i.low_stock_threshold})`] as [string, string]),
       link: "/inventory?filter=low",
       dedupeKey: `low-stock:${weekKey(t)}`,
       sms: `Low stock, consider ordering: ${low.map((i) => `${i.name} (${i.available_qty} left)`).join(", ")}`,

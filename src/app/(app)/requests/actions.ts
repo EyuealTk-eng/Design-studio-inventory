@@ -77,10 +77,20 @@ export async function createRequest(
     return { error: error.message };
   }
 
+  const { data: named } = await supabase.from("items").select("id, name").in("id", v.lines.map((l) => l.item_id));
+  const nameOf = new Map((named ?? []).map((i) => [i.id as string, i.name as string]));
   await notify(await adminRecipients(), {
     kind: "new_request",
     title: `New borrow request from ${profile.full_name}`,
-    body: `${profile.full_name} (${profile.student_id}) requested ${v.lines.length} item type${v.lines.length === 1 ? "" : "s"} for "${v.project}", returning ${formatDate(v.due_date)}.`,
+    body: `${profile.full_name} sent a borrow request with the filled-in request form. Open it to review and approve.`,
+    details: [
+      ["Student", profile.full_name],
+      ["Student ID", profile.student_id],
+      ["Project", v.project],
+      ["Items", v.lines.map((l) => `${l.qty} × ${nameOf.get(l.item_id) ?? "item"}`).join("\n")],
+      ["Return by", formatDate(v.due_date)],
+      ...(v.purpose ? ([["Purpose", v.purpose]] as [string, string][]) : []),
+    ],
     link: `/requests/${requestId}`,
     dedupeKey: `new-request:${requestId}`,
     sms: `New borrow request from ${profile.full_name} for "${v.project}". Please review it on the inventory site.`,
@@ -95,13 +105,16 @@ interface ReviewTarget {
   project: string;
   due_date: string;
   profiles: { id: string; email: string; full_name: string; phone: string | null };
+  request_items: { qty: number; lost_qty: number; items: { name: string } | null }[];
 }
+
+const itemLines = (t: ReviewTarget) => t.request_items.map((l) => `${l.qty} × ${l.items?.name ?? "item"}`).join("\n");
 
 async function loadTarget(id: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("requests")
-    .select("id, project, due_date, profiles!requests_student_id_fkey(id, email, full_name, phone)")
+    .select("id, project, due_date, profiles!requests_student_id_fkey(id, email, full_name, phone), request_items(qty, lost_qty, items(name))")
     .eq("id", id)
     .single<ReviewTarget>();
   return data;
@@ -135,8 +148,14 @@ export async function reviewRequest(formData: FormData) {
       kind: approved ? "request_approved" : "request_rejected",
       title: approved ? "Your borrow request was approved" : "Your borrow request was not approved",
       body: approved
-        ? `You can collect the items for "${target.project}". Please return them by ${formatDate(target.due_date)}.${note ? `\n\nNote from admin: ${note}` : ""}`
-        : `Your request for "${target.project}" was declined.${note ? `\n\nReason: ${note}` : ""}`,
+        ? "You can collect your items from the studio. Please bring them back by the return date."
+        : "Your request was declined. Contact the studio admins if you have questions.",
+      details: [
+        ["Project", target.project],
+        ["Items", itemLines(target)],
+        ...(approved ? ([["Return by", formatDate(target.due_date)]] as [string, string][]) : []),
+        ...(note ? ([[approved ? "Note from admin" : "Reason", note]] as [string, string][]) : []),
+      ],
       link: `/requests/${id}`,
       dedupeKey: `review:${id}`,
       sms: approved
@@ -161,7 +180,8 @@ async function alertLowStock(requestId: string) {
   await notify(await adminRecipients(), {
     kind: "low_stock",
     title: `Low stock: ${low.map((i) => i.name).join(", ")}`,
-    body: low.map((i) => `• ${i.name}: only ${i.available_qty} left — consider ordering more`).join("\n"),
+    body: "These items just dropped to their low-stock level. Consider ordering more.",
+    details: low.map((i) => [i.name, `${i.available_qty} left (alert at ${i.low_stock_threshold})`] as [string, string]),
     link: "/inventory?filter=low",
     dedupeKey: `low-after:${requestId}`,
     sms: `Low stock: ${low.map((i) => `${i.name} (${i.available_qty} left)`).join(", ")}. Consider ordering more.`,
@@ -188,7 +208,15 @@ export async function markReturned(formData: FormData) {
     await notify([target.profiles], {
       kind: "returned",
       title: "Return received — thank you!",
-      body: `The items for "${target.project}" have been checked back in.`,
+      body: "Your items have been checked back in. Thank you for returning them!",
+      details: [
+        ["Project", target.project],
+        ["Items", itemLines(target)],
+        ["Returned on", formatDate(new Date().toISOString())],
+        ...(target.request_items.some((l) => l.lost_qty > 0)
+          ? ([["Missing or broken", target.request_items.filter((l) => l.lost_qty > 0).map((l) => `${l.lost_qty} × ${l.items?.name}`).join("\n")]] as [string, string][])
+          : []),
+      ],
       link: `/requests/${id}`,
       dedupeKey: `returned:${id}`,
     });
@@ -210,6 +238,11 @@ export async function messageBorrower(formData: FormData) {
     kind: "message",
     title: `Message about "${target.project}"`,
     body: message,
+    details: [
+      ["Project", target.project],
+      ["Items", itemLines(target)],
+      ["Return by", formatDate(target.due_date)],
+    ],
     link: `/requests/${id}`,
     dedupeKey: `message:${id}:${Date.now()}`,
     sms: message,

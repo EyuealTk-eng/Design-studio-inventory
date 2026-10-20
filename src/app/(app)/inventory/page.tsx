@@ -150,8 +150,8 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {items.map((item) => (
-                  <tr key={item.id} className="transition-colors hover:bg-brand-50/40">
+                {items.map((item, i) => (
+                  <tr key={item.id} className="enter-up transition-colors hover:bg-brand-50/40" style={{ animationDelay: `${Math.min(i, 14) * 30}ms` }}>
                     <td className="px-4 py-3">
                       <p className="font-semibold text-ink">{item.name}</p>
                       <p className="text-xs text-muted">

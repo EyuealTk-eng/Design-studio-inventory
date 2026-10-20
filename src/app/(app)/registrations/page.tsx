@@ -43,8 +43,17 @@ async function decide(formData: FormData) {
       title: status === "approved" ? "Your studio account is approved" : "Your studio access was revoked",
       body:
         status === "approved"
-          ? `Welcome! Sign in with your student ID (${user.student_id}) and the password you chose.`
+          ? "Welcome to the studio! Sign in with your student ID and the password you chose."
           : "Please contact the Biomedical Design Studio admins if you think this is a mistake.",
+      details:
+        status === "approved"
+          ? [
+              ["Name", user.full_name],
+              ["Student ID", user.student_id],
+              ["Sign in with", "Your student ID + password"],
+              ["You can now", "Browse the inventory and borrow items"],
+            ]
+          : [["Student ID", user.student_id]],
       link: "/login",
       sms:
         status === "approved"
@@ -107,8 +116,8 @@ export default async function RegistrationsPage({ searchParams }: PageProps<"/re
           </EmptyState>
         ) : (
           <ul className="divide-y divide-line">
-            {people.map((p) => (
-              <li key={p.id} className="flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center">
+            {people.map((p, i) => (
+              <li key={p.id} className="enter-up flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center" style={{ animationDelay: `${Math.min(i, 12) * 40}ms` }}>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-semibold">{p.full_name}</p>

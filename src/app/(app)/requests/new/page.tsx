@@ -39,14 +39,14 @@ export default async function NewRequestPage({ searchParams }: PageProps<"/reque
 
   const supabase = await createClient();
   const { data } = await supabase.from("items").select("id, name, category, sku, available_qty").order("name");
-  // Students only learn whether an item is in stock — the counts never reach their browser.
+  // The cart stops at what is really in stock. Students never see the number itself.
   const items: BorrowableItem[] = (data ?? []).map((i) => ({
     id: i.id,
     name: i.name,
     category: i.category,
     sku: i.sku,
     inStock: i.available_qty > 0,
-    max: isAdmin ? i.available_qty : undefined,
+    max: i.available_qty,
   }));
 
   return (

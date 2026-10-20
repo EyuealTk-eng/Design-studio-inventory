@@ -83,7 +83,14 @@ export async function signup(_prev: FormState, formData: FormData): Promise<Form
     await notify(await adminRecipients(), {
       kind: "signup",
       title: `Duplicate student ID attempt: ${studentId}`,
-      body: `${v.full_name} (${v.email}, ${v.phone}) tried to register with ${studentId}, which already belongs to ${idOwner.full_name} (${idOwner.status}). If the existing account isn't the real owner, delete it on the Registrations page.`,
+      body: "Someone tried to register with a student ID that already has an account. If the existing account isn't the real owner, delete it on the Registrations page.",
+      details: [
+        ["Student ID", studentId],
+        ["Tried by", v.full_name],
+        ["Their email", v.email],
+        ["Their phone", v.phone],
+        ["Existing account", `${idOwner.full_name} (${idOwner.status})`],
+      ],
       link: "/registrations?tab=" + idOwner.status,
       dedupeKey: `dup-id:${studentId}:${v.email}`,
     });
@@ -143,7 +150,15 @@ export async function signup(_prev: FormState, formData: FormData): Promise<Form
   await notify(await adminRecipients(), {
     kind: "signup",
     title: `New registration: ${v.full_name}`,
-    body: `${v.full_name} (${studentId}), ${v.department} year ${v.year}, is waiting for approval.`,
+    body: "A new student registered and is waiting for your approval.",
+    details: [
+      ["Name", v.full_name],
+      ["Student ID", studentId],
+      ["Department", v.department],
+      ["Year", `Year ${v.year}`],
+      ["Email", v.email],
+      ["Phone", v.phone],
+    ],
     link: "/registrations",
     dedupeKey: `signup:${created.user.id}`,
     sms: `New registration waiting for approval: ${v.full_name} (${studentId}).`,

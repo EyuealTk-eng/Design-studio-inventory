@@ -41,11 +41,73 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Subtle molecular grid used on auth pages and the dashboard hero. */
-.bg-grid {
-  background-image:
-    radial-gradient(circle at 1px 1px, rgb(59 116 246 / 0.18) 1px, transparent 0);
-  background-size: 22px 22px;
+/* ---------------------------------------------------------------- motion
+   Transform + opacity only (GPU-composited, no layout work), so nothing here can cause lag.
+   Everything collapses to an instant change under prefers-reduced-motion (below). */
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes enter-up {
+  from { opacity: 0; transform: translate3d(0, 16px, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes enter-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes grow-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+@keyframes pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+@keyframes ecg-run {
+  from { stroke-dashoffset: var(--ecg-len, 1200); }
+  to { stroke-dashoffset: calc(var(--ecg-len, 1200) * -1); }
+}
+@keyframes blip {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.35); }
+}
+
+/* Each page rises in when you navigate to it. */
+.enter-page { animation: enter-up 420ms var(--ease-out) both; }
+/* Lists and panels: add style="animation-delay: …" to stagger (60–90 ms apart). */
+.enter-up { animation: enter-up 480ms var(--ease-out) both; }
+.enter-fade { animation: enter-fade 400ms ease-out both; }
+.grow-x { transform-origin: left center; animation: grow-x 700ms var(--ease-out) both; }
+.pop { animation: pop 320ms var(--ease-spring); }
+.blip { animation: blip 1.2s ease-in-out infinite; }
+
+/* Loading skeletons */
+.skeleton { position: relative; overflow: hidden; border-radius: 0.75rem; background: var(--color-brand-50); }
+.skeleton::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.75), transparent);
+  animation: shimmer 1.3s ease-in-out infinite;
+}
+
+/* The heartbeat trace: draws itself across, forever (stroke-dashoffset is cheap to animate). */
+.ecg-trace {
+  stroke-dasharray: var(--ecg-len, 1200);
+  animation: ecg-run 3.6s linear infinite;
+}
+
+/* Press feedback for anything clickable */
+.press { transition: transform 160ms var(--ease-out); }
+.press:active { transform: scale(0.97); }
+.lift { transition: transform 220ms var(--ease-out), border-color 220ms, box-shadow 220ms; }
+@media (hover: hover) {
+  .lift:hover { transform: translateY(-2px); }
 }
 
 :focus-visible {
@@ -56,8 +118,12 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+  .ecg-trace { animation: none; stroke-dasharray: none; }
+  .skeleton::after { animation: none; }
 }
 
 @media print {

@@ -22,6 +22,8 @@ export interface Notice {
   dedupeKey: string;
   /** Short text for an SMS. Omit to send email + in-app only. */
   sms?: string;
+  /** Label/value pairs listed when the notification is opened (and in the email). */
+  details?: [string, string][];
 }
 
 export interface DeliveryResult {
@@ -49,6 +51,7 @@ export async function deliver(recipients: Recipient[], notice: Notice): Promise<
         title: notice.title,
         body: notice.body,
         link: notice.link ?? null,
+        details: notice.details ?? null,
         dedupe_key: notice.dedupeKey,
       })),
       { onConflict: "user_id,dedupe_key", ignoreDuplicates: true },
@@ -105,7 +108,7 @@ async function sendEmail(to: Recipient, notice: Notice): Promise<boolean> {
     from: env.emailFrom(),
     to: to.email,
     subject: notice.title,
-    text: `Hi ${to.full_name},\n\n${notice.title}\n\n${notice.body}\n\nOpen inventory: ${link}`,
+    text: `Hi ${to.full_name},\n\n${notice.title}\n\n${notice.body}\n${(notice.details ?? []).map(([k, v]) => `\n${k}: ${v}`).join("")}\n\nOpen inventory: ${link}`,
     html: emailHtml(to.full_name, notice, link),
   };
   try {
@@ -145,6 +148,7 @@ function emailHtml(name: string, notice: Notice, link: string) {
     <p>Hi ${escapeHtml(name)},</p>
     <h2 style="font-size:18px;margin:0 0 8px">${escapeHtml(notice.title)}</h2>
     <p style="white-space:pre-line">${escapeHtml(notice.body)}</p>
+    ${notice.details?.length ? `<table style="border-collapse:collapse;margin:8px 0 16px;font-size:14px">${notice.details.map(([k, v]) => `<tr><td style="padding:6px 16px 6px 0;color:#4a5a78;vertical-align:top;white-space:nowrap">${escapeHtml(k)}</td><td style="padding:6px 0;white-space:pre-line">${escapeHtml(v)}</td></tr>`).join("")}</table>` : ""}
     <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#1d4ed8;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Open inventory</a></p>
   </div></div>`;
 }

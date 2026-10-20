@@ -7,7 +7,7 @@ export function cx(...classes: (string | false | null | undefined)[]) {
 }
 
 const buttonBase =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60";
+  "press inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-[color,background-color,border-color,transform] duration-150 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100";
 const buttonVariants = {
   primary: "bg-brand-600 text-white shadow-sm hover:bg-brand-700 active:bg-brand-800",
   secondary: "border border-line bg-white text-ink hover:border-brand-300 hover:bg-brand-50",
@@ -183,10 +183,9 @@ export function StockMeter({ available, total, threshold }: { available: number;
   return (
     <div className="flex w-full min-w-20 items-center gap-2 sm:min-w-28" title={`${available} of ${total} available`}>
       <div className="h-2 flex-1 overflow-hidden rounded-full bg-brand-50" aria-hidden>
-        <div
-          className={cx("h-full rounded-full", available === 0 ? "bg-bad" : low ? "bg-warn" : "bg-brand-500")}
-          style={{ width: `${pct}%` }}
-        />
+        <div className="h-full" style={{ width: `${pct}%` }}>
+          <div className={cx("grow-x h-full rounded-full", available === 0 ? "bg-bad" : low ? "bg-warn" : "bg-brand-500")} />
+        </div>
       </div>
       <span className="w-14 text-right text-sm tabular-nums">
         <span className="font-semibold">{available}</span>

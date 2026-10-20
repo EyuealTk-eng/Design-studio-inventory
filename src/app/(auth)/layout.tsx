@@ -1,5 +1,6 @@
 import { Boxes, BellRing, FileCheck2 } from "lucide-react";
 import { Logo } from "@/components/ui";
+import { Ecg } from "@/components/ecg";
 
 const highlights = [
   { icon: Boxes, text: "Live stock levels for every tool and component" },
@@ -11,16 +12,12 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="grid min-h-dvh lg:grid-cols-[1fr_1.1fr]">
       <aside className="relative hidden overflow-hidden bg-brand-700 p-12 text-white lg:flex lg:flex-col lg:justify-between">
-        <div className="bg-grid absolute inset-0 opacity-30" aria-hidden />
-        <div
-          className="absolute -right-24 -top-24 size-96 rounded-full bg-brand-500/50 blur-3xl"
-          aria-hidden
-        />
+        <Ecg beats={5} strokeWidth={2.5} className="absolute inset-x-0 top-1/2 h-24 w-full -translate-y-[170%] text-white/80" />
         <div className="relative flex items-center gap-3">
           <Logo className="size-10 text-white/15" />
           <span className="text-lg font-bold">Biomedical Design Studio</span>
         </div>
-        <div className="relative max-w-md">
+        <div className="enter-up relative max-w-md">
           <h2 className="text-4xl font-bold leading-tight tracking-tight">
             Every instrument, accounted for.
           </h2>

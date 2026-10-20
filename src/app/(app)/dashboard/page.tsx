@@ -16,6 +16,7 @@ import { addDays, daysBetween, dueLabel, formatDate, nextCheckin, today } from "
 import { isLowStock, type BorrowRequest, type Item, type Profile, type Settings } from "@/lib/types";
 import { Badge, ButtonLink, Card, StatusBadge, cx } from "@/components/ui";
 import { StatCard } from "@/components/stat-card";
+import { Ecg } from "@/components/ecg";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -32,27 +33,31 @@ export default async function DashboardPage() {
   return profile.role === "admin" ? <AdminDashboard profile={profile} /> : <StudentDashboard profile={profile} />;
 }
 
-function Hero({ profile, children }: { profile: Profile; children?: React.ReactNode }) {
+function Hero({ profile, summary, children }: { profile: Profile; summary: string; children?: React.ReactNode }) {
   return (
-    <div className="relative mb-8 overflow-hidden rounded-3xl bg-brand-700 px-6 py-8 text-white sm:px-8">
-      <div className="bg-grid absolute inset-0 opacity-25" aria-hidden />
-      <div className="absolute -right-16 -top-20 size-72 rounded-full bg-brand-400/40 blur-3xl" aria-hidden />
-      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="relative mb-8 overflow-hidden rounded-3xl bg-brand-700 px-6 pb-24 pt-8 text-white sm:px-10 sm:pt-10">
+      <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-brand-100">{formatDate(today())}</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
+          <p className="enter-up text-sm font-medium text-brand-100">{formatDate(today())}</p>
+          <h1 className="enter-up mt-1 text-3xl font-bold tracking-tight sm:text-4xl" style={{ animationDelay: "70ms" }}>
             {greeting()}, {profile.full_name.split(" ")[0]}
           </h1>
+          <p className="enter-up mt-2 flex items-center gap-2 text-brand-100" style={{ animationDelay: "140ms" }}>
+            <span className="blip inline-block size-2 rounded-full bg-white" aria-hidden />
+            {summary}
+          </p>
         </div>
-        {children}
+        <div className="enter-up" style={{ animationDelay: "200ms" }}>{children}</div>
       </div>
+      {/* the studio's pulse */}
+      <Ecg beats={9} strokeWidth={2.5} className="absolute inset-x-0 bottom-4 h-16 w-full text-white/90" />
     </div>
   );
 }
 
-function Panel({ title, href, linkLabel, children }: { title: string; href?: string; linkLabel?: string; children: React.ReactNode }) {
+function Panel({ title, href, linkLabel, children, index = 0 }: { title: string; href?: string; linkLabel?: string; children: React.ReactNode; index?: number }) {
   return (
-    <Card className="flex flex-col overflow-hidden">
+    <Card className="enter-up flex flex-col overflow-hidden" style={{ animationDelay: `${260 + index * 80}ms` }}>
       <div className="flex items-center justify-between border-b border-line px-5 py-4">
         <h2 className="font-semibold">{title}</h2>
         {href && (
@@ -102,7 +107,18 @@ async function AdminDashboard({ profile }: { profile: Profile }) {
 
   return (
     <>
-      <Hero profile={profile}>
+      <Hero
+        profile={profile}
+        summary={
+          [
+            pending?.length ? `${pending.length} waiting for approval` : null,
+            overdue.length ? `${overdue.length} overdue` : null,
+            low.length ? `${low.length} to reorder` : null,
+          ]
+            .filter(Boolean)
+            .join(" · ") || "All clear — nothing needs you right now"
+        }
+      >
         <Link
           href="/checkin"
           className="inline-flex items-center gap-3 rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-white/20 transition-colors hover:bg-white/15"
@@ -117,7 +133,7 @@ async function AdminDashboard({ profile }: { profile: Profile }) {
         </Link>
       </Hero>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-8 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatCard index={0} label="Pending requests" value={pending?.length ?? 0} hint={waitingUsers ? `${waitingUsers} registration${waitingUsers === 1 ? "" : "s"} waiting too` : "Waiting for approval"} icon={<ClipboardList aria-hidden />} tone="amber" href="/requests?filter=pending" />
         <StatCard index={1} label="Units borrowed" value={unitsOut} hint={`of ${unitsTotal} units in total`} icon={<PackageOpen aria-hidden />} href="/inventory?filter=out" />
         <StatCard index={2} label="Overdue" value={overdue.length} hint={overdue.length ? "Reminders are sent automatically" : "Everything on time"} icon={<AlertTriangle aria-hidden />} tone={overdue.length ? "red" : "green"} href="/requests?filter=due" />
@@ -125,7 +141,7 @@ async function AdminDashboard({ profile }: { profile: Profile }) {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Panel title="Waiting for approval" href="/requests?filter=pending">
+        <Panel index={0} title="Waiting for approval" href="/requests?filter=pending">
           {!pending?.length ? (
             <Empty>No pending requests.</Empty>
           ) : (
@@ -145,7 +161,7 @@ async function AdminDashboard({ profile }: { profile: Profile }) {
           )}
         </Panel>
 
-        <Panel title="Due soon & overdue" href="/requests?filter=due">
+        <Panel index={1} title="Due soon & overdue" href="/requests?filter=due">
           {dueSoon.length === 0 ? (
             <Empty>No returns due in the next {settings?.due_soon_days ?? 3} days.</Empty>
           ) : (
@@ -165,7 +181,7 @@ async function AdminDashboard({ profile }: { profile: Profile }) {
           )}
         </Panel>
 
-        <Panel title="Items to reorder" href="/inventory?filter=low">
+        <Panel index={2} title="Items to reorder" href="/inventory?filter=low">
           {low.length === 0 ? (
             <Empty>All items are above their low-stock level.</Empty>
           ) : (
@@ -184,12 +200,12 @@ async function AdminDashboard({ profile }: { profile: Profile }) {
           )}
         </Panel>
 
-        <Panel title="Stock on the shelf by category" href="/inventory" linkLabel="Inventory">
+        <Panel index={3} title="Stock on the shelf by category" href="/inventory" linkLabel="Inventory">
           {categories.length === 0 ? (
             <Empty>Add or import items to see stock health.</Empty>
           ) : (
             <ul className="flex flex-col gap-3 px-5 py-4">
-              {categories.map(([name, c]) => {
+              {categories.map(([name, c], ci) => {
                 const pct = c.total ? Math.round((c.avail / c.total) * 100) : 0;
                 return (
                   <li key={name}>
@@ -200,7 +216,9 @@ async function AdminDashboard({ profile }: { profile: Profile }) {
                       </span>
                     </div>
                     <div className="h-2.5 overflow-hidden rounded-full bg-brand-50" role="img" aria-label={`${name}: ${pct}% on the shelf`}>
-                      <div className={cx("h-full rounded-full", pct < 25 ? "bg-warn" : "bg-brand-500")} style={{ width: `${pct}%` }} />
+                      <div className="h-full" style={{ width: `${pct}%` }}>
+                        <div className={cx("grow-x h-full rounded-full", pct < 25 ? "bg-warn" : "bg-brand-500")} style={{ animationDelay: `${500 + ci * 70}ms` }} />
+                      </div>
                     </div>
                   </li>
                 );
@@ -226,13 +244,22 @@ async function StudentDashboard({ profile }: { profile: Profile }) {
 
   return (
     <>
-      <Hero profile={profile}>
+      <Hero
+        profile={profile}
+        summary={
+          overdue.length
+            ? `${overdue.length} request${overdue.length === 1 ? " is" : "s are"} overdue — please return ${overdue.length === 1 ? "it" : "them"}`
+            : [active.length ? `${active.length} borrowed` : null, pending.length ? `${pending.length} waiting for approval` : null]
+                .filter(Boolean)
+                .join(" · ") || "Ready when you are — borrow what your project needs"
+        }
+      >
         <ButtonLink href="/requests/new" variant="secondary" className="border-transparent">
           <PackagePlus className="size-4" aria-hidden /> Borrow items
         </ButtonLink>
       </Hero>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mb-8 grid grid-cols-3 gap-2.5 sm:gap-4">
         <StatCard index={0} label="Borrowed by you" value={active.reduce((s, r) => s + (r.request_items ?? []).reduce((a, l) => a + l.qty, 0), 0)} hint={`${active.length} active request${active.length === 1 ? "" : "s"}`} icon={<PackageOpen aria-hidden />} />
         <StatCard index={1} label="Waiting for approval" value={pending.length} icon={<ClipboardList aria-hidden />} tone="amber" href="/requests" />
         <StatCard index={2} label="Items available" value={itemCount ?? 0} hint="Ready to borrow" icon={<Boxes aria-hidden />} tone="green" href="/inventory" />
@@ -245,7 +272,7 @@ async function StudentDashboard({ profile }: { profile: Profile }) {
         </div>
       )}
 
-      <Panel title="Your borrowed & pending items" href="/requests">
+      <Panel index={0} title="Your borrowed & pending items" href="/requests">
         {!mine?.length ? (
           <Empty>
             Nothing borrowed right now.{" "}

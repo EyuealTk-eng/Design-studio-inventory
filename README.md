@@ -37,7 +37,7 @@ Without email/SMS settings, emails and SMS are printed to the terminal instead o
 
 1. **Create a Supabase project** (free tier is fine) at <https://supabase.com>.
 2. **Create the database**: open *SQL Editor* and run each file in `supabase/migrations/` in order
-   (`0001_init.sql`, `0002_phone_sms.sql`, then `0003_registration_and_borrowing_rules.sql`), or `npx supabase link` then `npx supabase db push`.
+   (`0001_init.sql`, `0002_phone_sms.sql`, `0003_registration_and_borrowing_rules.sql`, then `0004_notification_details.sql`), or `npx supabase link` then `npx supabase db push`.
 3. In Supabase *Authentication → Providers → Email*, turn **off** "Confirm email" (admins approve accounts instead) and set the minimum password length to 8.
 4. **Email** — easiest is the studio's own Gmail account:
    turn on 2-Step Verification, then create an *App password* (Google Account → Security → App passwords) and set
@@ -65,6 +65,14 @@ Without email/SMS settings, emails and SMS are printed to the terminal instead o
    After that, admins approve everyone else from the **Registrations** page (and can make other admins there).
 8. **Import your inventory**: *Inventory → Import*, upload your Excel sheet. The first row needs headers; `Name` and `Quantity` are required,
    and `Category`, `Code`, `Location`, `Condition`, `Low stock`, `Notes` are optional. Use *Download template* for an example.
+
+## Speed
+
+- `vercel.json` runs the site's server code in **Frankfurt (`fra1`)**. Keep it in the same region as your Supabase
+  project (Supabase → Project Settings → General → Region). If your database is elsewhere, change `fra1` to the
+  matching Vercel region (e.g. `iad1` for us-east-1), otherwise every page waits on a long-distance round trip.
+- Each page needs two database round trips: one `app_context()` call (profile + sidebar counters) and the page's data.
+- A loading skeleton appears the moment a link is clicked, and pages visited in the last 30 s open instantly.
 
 ## How stock is kept correct
 

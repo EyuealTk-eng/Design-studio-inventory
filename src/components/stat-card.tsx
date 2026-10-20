@@ -7,10 +7,10 @@ import type { ReactNode } from "react";
 import { cx } from "@/components/ui";
 
 const tones = {
-  blue: "bg-brand-50 text-brand-600",
-  red: "bg-bad-bg text-bad",
-  amber: "bg-warn-bg text-warn",
-  green: "bg-ok-bg text-ok",
+  blue: "text-brand-600",
+  red: "text-bad",
+  amber: "text-warn",
+  green: "text-ok",
 };
 
 export function StatCard({
@@ -51,20 +51,18 @@ export function StatCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
       className={cx(
-        "flex h-full items-start gap-4 rounded-2xl border border-line bg-white p-5 shadow-card",
-        href && "transition-colors hover:border-brand-300",
+        "flex h-full flex-col rounded-2xl border border-line bg-white p-3.5 sm:p-5",
+        href && "lift hover:border-brand-300",
       )}
     >
-      <span className={cx("grid size-11 shrink-0 place-items-center rounded-xl [&_svg]:size-5", tones[tone])}>
-        {icon}
-      </span>
-      <div className="min-w-0">
-        <p className="text-sm font-medium text-muted">{label}</p>
-        <p className="text-3xl font-bold tabular-nums tracking-tight text-ink" aria-label={String(value)}>
-          {reduce ? value : shown}
-        </p>
-        {hint && <p className="mt-0.5 truncate text-xs text-muted">{hint}</p>}
-      </div>
+      <p className="flex items-start gap-1.5 text-xs font-medium leading-tight text-muted sm:items-center sm:gap-2 sm:text-sm">
+        <span className={cx("shrink-0 [&_svg]:size-4", tones[tone])}>{icon}</span>
+        {label}
+      </p>
+      <p className="mt-2 text-3xl font-bold tabular-nums tracking-tight text-ink sm:mt-3 sm:text-4xl" aria-label={String(value)}>
+        {reduce ? value : shown}
+      </p>
+      {hint && <p className="mt-1 hidden truncate text-xs text-muted sm:block">{hint}</p>}
     </motion.div>
   );
 

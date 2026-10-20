@@ -12,12 +12,10 @@ export interface BorrowableItem {
   category: string;
   sku: string | null;
   inStock: boolean;
-  /** Available count — only sent to admins. Students are capped server-side. */
-  max?: number;
+  /** Units in stock: the cart can't go above it (only admins see the number). */
+  max: number;
 }
 
-/** Per-line ceiling when the real count is hidden; the server rejects anything above stock. */
-const HIDDEN_MAX = 20;
 const TEMPLATE_URL = "/request-template.pdf";
 
 function addDays(date: string, days: number) {
@@ -59,7 +57,7 @@ export function RequestBuilder({
   const setQty = (id: string, qty: number) =>
     setCart((c) => {
       const it = byId.get(id);
-      const max = !it?.inStock ? 0 : (it.max ?? HIDDEN_MAX);
+      const max = !it?.inStock ? 0 : it.max;
       const next = { ...c };
       if (qty <= 0) delete next[id];
       else next[id] = Math.min(qty, max);
@@ -104,12 +102,16 @@ export function RequestBuilder({
         ) : (
           // Phones: the list grows with the page so it scrolls naturally; desktop: its own scroll area.
           <ul className="divide-y divide-line lg:max-h-[38rem] lg:overflow-y-auto lg:overscroll-contain">
-            {results.map((item) => {
+            {results.map((item, idx) => {
               const inCart = cart[item.id] ?? 0;
               const none = !item.inStock;
-              const max = item.max ?? HIDDEN_MAX;
+              const max = item.max;
               return (
-                <li key={item.id} className={cx("flex items-center gap-3 px-4 py-3", inCart > 0 && "bg-brand-50/60")}>
+                <li
+                  key={item.id}
+                  className={cx("enter-up flex items-center gap-3 px-4 py-3 transition-colors duration-300", inCart > 0 && "bg-brand-50/60")}
+                  style={{ animationDelay: `${Math.min(idx, 12) * 25}ms` }}
+                >
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{item.name}</p>
                     <p className="text-xs text-muted">{item.category}</p>
@@ -129,7 +131,7 @@ export function RequestBuilder({
                     type="button"
                     disabled={none || inCart >= max}
                     onClick={() => setQty(item.id, inCart + 1)}
-                    className="grid size-11 shrink-0 place-items-center rounded-xl bg-brand-600 text-white transition-colors hover:bg-brand-700 disabled:bg-slate-200 disabled:text-slate-400"
+                    className="press grid size-11 shrink-0 place-items-center rounded-xl bg-brand-600 text-white transition-colors hover:bg-brand-700 disabled:bg-slate-200 disabled:text-slate-400"
                     aria-label={`Add one ${item.name}`}
                   >
                     <Plus className="size-5" aria-hidden />
@@ -145,7 +147,10 @@ export function RequestBuilder({
         <Card className="p-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-semibold">Your request</h2>
-            <Badge>{totalUnits} unit{totalUnits === 1 ? "" : "s"}</Badge>
+            {/* key change re-runs the pop each time the count changes */}
+            <span key={totalUnits} className={cx("inline-block", totalUnits > 0 && "pop")}>
+              <Badge>{totalUnits} unit{totalUnits === 1 ? "" : "s"}</Badge>
+            </span>
           </div>
           {lines.length === 0 ? (
             <p className={cx("rounded-xl border border-dashed p-4 text-center text-sm", fe.lines ? "border-bad/40 text-bad" : "border-line text-muted")}>
@@ -165,13 +170,18 @@ export function RequestBuilder({
                       exit={{ opacity: 0, transition: { duration: 0.12 } }}
                       className="flex items-center gap-2 rounded-xl border border-line p-2 pl-3"
                     >
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium">{item.name}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium">{item.name}</span>
+                        {qty >= item.max && (
+                          <span className="block text-xs font-medium text-warn">{showCounts ? `All ${item.max} in stock` : "That's all we have in stock"}</span>
+                        )}
+                      </span>
                       <div className="flex items-center">
                         <button type="button" onClick={() => setQty(item_id, qty - 1)} className="grid size-9 place-items-center rounded-lg text-muted hover:bg-brand-50" aria-label={`Remove one ${item.name}`}>
                           {qty === 1 ? <Trash2 className="size-4" aria-hidden /> : <Minus className="size-4" aria-hidden />}
                         </button>
                         <span className="w-7 text-center font-semibold tabular-nums" aria-live="polite">{qty}</span>
-                        <button type="button" onClick={() => setQty(item_id, qty + 1)} disabled={qty >= (item.max ?? HIDDEN_MAX)} className="grid size-9 place-items-center rounded-lg text-muted hover:bg-brand-50 disabled:opacity-40" aria-label={`Add one ${item.name}`}>
+                        <button type="button" onClick={() => setQty(item_id, qty + 1)} disabled={qty >= item.max} className="grid size-9 place-items-center rounded-lg text-muted hover:bg-brand-50 disabled:opacity-40" aria-label={`Add one ${item.name}`}>
                           <Plus className="size-4" aria-hidden />
                         </button>
                       </div>
