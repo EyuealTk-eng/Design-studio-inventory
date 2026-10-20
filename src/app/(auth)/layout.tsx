@@ -12,7 +12,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="grid min-h-dvh lg:grid-cols-[1fr_1.1fr]">
       <aside className="relative hidden overflow-hidden bg-hero p-12 text-white lg:flex lg:flex-col lg:justify-between">
-        <Ecg beats={5} strokeWidth={2.5} className="absolute inset-x-0 top-1/2 h-24 w-full -translate-y-[170%] text-white/80" />
+        <Ecg beats={5} strokeWidth={2.5} className="absolute inset-x-0 top-28 h-24 w-full text-white/80" />
         <div className="relative flex items-center gap-3">
           <Logo className="size-10 text-white/15" />
           <span className="text-lg font-bold">Biomedical Design Studio</span>
