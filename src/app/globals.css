@@ -71,8 +71,10 @@ body {
   100% { transform: scale(1); }
 }
 @keyframes ecg-run {
-  from { stroke-dashoffset: var(--ecg-len, 1200); }
-  to { stroke-dashoffset: calc(var(--ecg-len, 1200) * -1); }
+  /* Literal numbers on purpose: Chrome can't interpolate var()/calc() here and jumps from start
+     to end, which leaves the trace invisible. Matches pathLength={1000} on the <path>. */
+  from { stroke-dashoffset: 1000; }
+  to { stroke-dashoffset: -1000; }
 }
 @keyframes blip {
   0%, 100% { opacity: 0.35; transform: scale(1); }
@@ -98,7 +100,7 @@ body {
 
 /* The heartbeat trace: draws itself across, forever (stroke-dashoffset is cheap to animate). */
 .ecg-trace {
-  stroke-dasharray: var(--ecg-len, 1200);
+  stroke-dasharray: 1000;
   animation: ecg-run 3.6s linear infinite;
 }
 

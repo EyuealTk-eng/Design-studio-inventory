@@ -16,7 +16,6 @@ export function Ecg({ beats = 4, className, strokeWidth = 3 }: { beats?: number;
         d={d}
         pathLength={1000}
         className="ecg-trace"
-        style={{ ["--ecg-len" as string]: 1000 }}
         fill="none"
         stroke="currentColor"
         strokeWidth={strokeWidth}
