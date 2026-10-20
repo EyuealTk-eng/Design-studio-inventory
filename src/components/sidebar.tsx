@@ -22,7 +22,6 @@ import {
 } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 import { Logo, cx } from "@/components/ui";
-import { ThemeSwitch } from "@/components/theme-switch";
 import type { Role } from "@/lib/types";
 
 interface NavItem {
@@ -123,9 +122,6 @@ export function Sidebar({
           })}
         </ul>
       </nav>
-      <div className="mx-3 mt-3">
-        <ThemeSwitch />
-      </div>
       <div className="m-3 rounded-2xl border border-line bg-surface p-3">
         <div className="flex items-center gap-3">
           <div className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-600 text-sm font-bold text-white" aria-hidden>

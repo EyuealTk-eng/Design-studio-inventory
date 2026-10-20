@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatPhone, normalisePhone } from "@/lib/phone";
 import { Alert, Card, Field, Input, PageHeader } from "@/components/ui";
+import { ThemeSwitch } from "@/components/theme-switch";
 import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "My account" };
@@ -36,7 +37,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
 
   return (
     <>
-      <PageHeader title="My account" description="Where we send your reminders." />
+      <PageHeader title="My account" description="Your details, reminders and appearance." />
       <div className="grid max-w-3xl gap-6">
         <Card className="p-6">
           <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-[10rem_1fr]">
@@ -69,6 +70,10 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
               <SubmitButton pendingText="Saving…">Save</SubmitButton>
             </div>
           </form>
+        </Card>
+        <Card className="p-6">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">Appearance</h2>
+          <ThemeSwitch />
         </Card>
       </div>
     </>

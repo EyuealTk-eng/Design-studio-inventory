@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate, nextCheckin } from "@/lib/dates";
 import type { Settings } from "@/lib/types";
 import { Alert, Card, Field, Input, PageHeader } from "@/components/ui";
+import { ThemeSwitch } from "@/components/theme-switch";
 import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -59,6 +60,10 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
             <SubmitButton pendingText="Saving…">Save settings</SubmitButton>
           </div>
         </form>
+      </Card>
+      <Card className="mt-6 max-w-2xl p-6">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">Appearance</h2>
+        <ThemeSwitch />
       </Card>
       <p className="mt-4 max-w-2xl text-sm text-muted">
         Low-stock levels are set per item on each item&apos;s page. Alerts are emailed once a day by the scheduled job and also appear under Notifications.

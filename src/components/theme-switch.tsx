@@ -1,64 +1,81 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { Monitor, Moon, Sun } from "lucide-react";
+import { Moon } from "lucide-react";
 import { cx } from "@/components/ui";
-import { THEME_EVENT as EVENT, THEME_KEY as KEY, type ThemeChoice } from "@/lib/theme";
+import { THEME_EVENT, THEME_KEY } from "@/lib/theme";
 
-function read(): ThemeChoice {
-  try {
-    const v = localStorage.getItem(KEY);
-    return v === "light" || v === "dark" ? v : "system";
-  } catch {
-    return "system";
-  }
-}
-
+// themeScript (in <head>) keeps <html data-theme> current; this just reads it.
 function subscribe(onChange: () => void) {
-  window.addEventListener(EVENT, onChange);
+  const media = matchMedia("(prefers-color-scheme: dark)");
+  window.addEventListener(THEME_EVENT, onChange);
   window.addEventListener("storage", onChange);
+  media.addEventListener("change", onChange);
   return () => {
-    window.removeEventListener(EVENT, onChange);
+    window.removeEventListener(THEME_EVENT, onChange);
     window.removeEventListener("storage", onChange);
+    media.removeEventListener("change", onChange);
   };
 }
+const isDark = () => document.documentElement.dataset.theme === "dark";
+const followsDevice = () => {
+  try {
+    return !localStorage.getItem(THEME_KEY);
+  } catch {
+    return true;
+  }
+};
 
-const OPTIONS: { value: ThemeChoice; label: string; icon: typeof Sun }[] = [
-  { value: "light", label: "Light", icon: Sun },
-  { value: "system", label: "Same as device", icon: Monitor },
-  { value: "dark", label: "Dark", icon: Moon },
-];
+function save(value: "light" | "dark" | null) {
+  try {
+    if (value) localStorage.setItem(THEME_KEY, value);
+    else localStorage.removeItem(THEME_KEY);
+  } catch {}
+  window.dispatchEvent(new Event(THEME_EVENT));
+}
 
+/** "Appearance" row with a dark-mode toggle, for the account and settings pages. */
 export function ThemeSwitch() {
-  const choice = useSyncExternalStore(subscribe, read, () => "system" as ThemeChoice);
-
-  const pick = (value: ThemeChoice) => {
-    try {
-      if (value === "system") localStorage.removeItem(KEY);
-      else localStorage.setItem(KEY, value);
-    } catch {}
-    window.dispatchEvent(new Event(EVENT));
-  };
+  const dark = useSyncExternalStore(subscribe, isDark, () => false);
+  const auto = useSyncExternalStore(subscribe, followsDevice, () => true);
 
   return (
-    <div role="radiogroup" aria-label="Colour theme" className="grid grid-cols-3 gap-1 rounded-xl bg-surface p-1 ring-1 ring-line">
-      {OPTIONS.map(({ value, label, icon: Icon }) => (
-        <button
-          key={value}
-          type="button"
-          role="radio"
-          aria-checked={choice === value}
-          title={label}
-          onClick={() => pick(value)}
-          className={cx(
-            "press grid h-9 place-items-center rounded-lg transition-colors",
-            choice === value ? "bg-card text-brand-700 shadow-card" : "text-muted hover:text-ink",
+    <div className="flex items-center gap-4">
+      <Moon className="size-5 shrink-0 text-brand-600" aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p id="dark-mode-label" className="font-semibold text-ink">Dark mode</p>
+        <p className="text-sm text-muted">
+          {auto ? (
+            "Following your device's setting."
+          ) : (
+            <>
+              Saved on this device.{" "}
+              <button type="button" onClick={() => save(null)} className="font-semibold text-brand-700 hover:underline">
+                Follow my device instead
+              </button>
+            </>
           )}
-        >
-          <Icon className="size-4" aria-hidden />
-          <span className="sr-only">{label}</span>
-        </button>
-      ))}
+        </p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={dark}
+        aria-labelledby="dark-mode-label"
+        onClick={() => save(dark ? "light" : "dark")}
+        className={cx(
+          "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors duration-200",
+          dark ? "bg-brand-600" : "bg-slate-300",
+        )}
+      >
+        <span
+          className={cx(
+            "inline-block size-5 rounded-full bg-white shadow transition-transform duration-200 ease-out",
+            dark ? "translate-x-6" : "translate-x-1",
+          )}
+          aria-hidden
+        />
+      </button>
     </div>
   );
 }
