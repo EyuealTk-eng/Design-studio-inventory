@@ -43,7 +43,7 @@ body {
 
 /* ---------------------------------------------------------------- motion
    Transform + opacity only (GPU-composited, no layout work), so nothing here can cause lag.
-   Everything collapses to an instant change under prefers-reduced-motion (below). */
+   Under prefers-reduced-motion the travel goes but the fades and heartbeat stay (below). */
 :root {
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -115,15 +115,17 @@ body {
   outline-offset: 2px;
 }
 
+/* Reduced motion (an OS setting many Windows laptops and phones have switched on): keep the
+   life, drop the travel. Things still fade in and the heartbeat still runs, slower, but nothing
+   slides, scales or bounces. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-delay: 0ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-  .ecg-trace { animation: none; stroke-dasharray: none; }
-  .skeleton::after { animation: none; }
+  .enter-page, .enter-up { animation-name: enter-fade; }
+  .grow-x { animation-name: enter-fade; }
+  .pop { animation: none; }
+  .blip { animation-name: enter-fade; animation-direction: alternate; animation-duration: 1.6s; }
+  .ecg-trace { animation-duration: 6s; }
+  .press, .lift { transition-property: border-color, box-shadow; }
+  .press:active, .lift:hover { transform: none; }
 }
 
 @media print {

@@ -35,7 +35,6 @@ export function StatCard({
   const [shown, setShown] = useState(0);
 
   useEffect(() => {
-    if (reduce) return;
     const controls = animate(0, value, {
       duration: 0.8,
       delay: index * 0.06,
@@ -43,11 +42,11 @@ export function StatCard({
       onUpdate: (v) => setShown(Math.round(v)),
     });
     return () => controls.stop();
-  }, [value, reduce, index]);
+  }, [value, index]);
 
   const body = (
     <motion.div
-      initial={reduce ? false : { opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: reduce ? 0 : 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
       className={cx(
@@ -60,7 +59,7 @@ export function StatCard({
         {label}
       </p>
       <p className="mt-2 text-3xl font-bold tabular-nums tracking-tight text-ink sm:mt-3 sm:text-4xl" aria-label={String(value)}>
-        {reduce ? value : shown}
+        {shown}
       </p>
       {hint && <p className="mt-1 hidden truncate text-xs text-muted sm:block">{hint}</p>}
     </motion.div>
