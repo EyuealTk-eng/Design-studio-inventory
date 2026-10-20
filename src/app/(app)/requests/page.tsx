@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ClipboardList, PackagePlus } from "lucide-react";
+import { ClipboardList, PackagePlus, X } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { addDays, dueLabel, formatDate, today } from "@/lib/dates";
@@ -22,7 +22,9 @@ export default async function RequestsPage({ searchParams }: PageProps<"/request
   const profile = await requireUser();
   const isAdmin = profile.role === "admin";
   const sp = await searchParams;
-  const filter = typeof sp.filter === "string" ? sp.filter : isAdmin ? "pending" : "all";
+  // Admins can narrow the list to one member (linked from the Members page).
+  const member = isAdmin && typeof sp.member === "string" && /^[0-9a-f-]{36}$/i.test(sp.member) ? sp.member : null;
+  const filter = typeof sp.filter === "string" ? sp.filter : isAdmin && !member ? "pending" : "all";
   const t = today();
 
   const supabase = await createClient();
@@ -32,6 +34,7 @@ export default async function RequestsPage({ searchParams }: PageProps<"/request
     .select("*, profiles!requests_student_id_fkey(full_name, student_id, email, phone, department, year), request_items(item_id, qty, lost_qty, items(id, name, category, available_qty))")
     .order("created_at", { ascending: false });
   if (!isAdmin) query = query.eq("student_id", profile.id);
+  if (member) query = query.eq("student_id", member);
   if (filter === "due") {
     query = query.eq("status", "approved").lte("due_date", addDays(t, settings?.due_soon_days ?? 3)).order("due_date");
   } else if (filter !== "all") {
@@ -39,6 +42,11 @@ export default async function RequestsPage({ searchParams }: PageProps<"/request
   }
   const { data } = await query.returns<BorrowRequest[]>();
   const requests = data ?? [];
+  const memberName = member
+    ? (requests[0]?.profiles?.full_name ??
+      (await supabase.from("profiles").select("full_name").eq("id", member).single()).data?.full_name ??
+      "this member")
+    : null;
 
   return (
     <>
@@ -54,11 +62,19 @@ export default async function RequestsPage({ searchParams }: PageProps<"/request
         }
       />
 
+      {memberName && (
+        <p className="mb-3 flex flex-wrap items-center gap-2 text-sm text-muted">
+          Showing requests from <span className="font-semibold text-ink">{memberName}</span>
+          <Link href={`/requests?filter=${filter}`} className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-semibold ring-1 ring-line hover:text-ink">
+            <X className="size-3.5" aria-hidden /> Show everyone
+          </Link>
+        </p>
+      )}
       <nav aria-label="Filter requests" className="no-print mb-4 flex gap-2 overflow-x-auto pb-1">
         {FILTERS.map((f) => (
           <Link
             key={f.key}
-            href={`/requests?filter=${f.key}`}
+            href={`/requests?filter=${f.key}${member ? `&member=${member}` : ""}`}
             aria-current={filter === f.key ? "page" : undefined}
             className={cx(
               "inline-flex min-h-9 shrink-0 items-center rounded-full px-3.5 text-sm font-semibold ring-1 ring-inset transition-colors",

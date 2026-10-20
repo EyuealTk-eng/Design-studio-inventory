@@ -25,6 +25,20 @@ function ago(iso: string, now: number) {
 
 type Row = { id: string; kind: string; title: string; body: string | null; link: string | null; details: unknown; read: boolean; created_at: string };
 
+const dayKey = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(d);
+
+/** "Today", "Yesterday", "Monday, 13 Oct" or "13 Oct 2025" for older years. */
+function dayLabel(iso: string, now: number) {
+  const key = dayKey(new Date(iso));
+  if (key === dayKey(new Date(now))) return "Today";
+  if (key === dayKey(new Date(now - 86_400_000))) return "Yesterday";
+  const d = new Date(iso);
+  const sameYear = key.slice(0, 4) === dayKey(new Date(now)).slice(0, 4);
+  return d.toLocaleDateString("en-GB", sameYear
+    ? { weekday: "long", day: "numeric", month: "short", timeZone: TZ }
+    : { day: "numeric", month: "short", year: "numeric", timeZone: TZ });
+}
+
 /** Server-side formatting (relative times are computed here, not in the browser). */
 function toViews(rows: Row[]): NotificationView[] {
   const now = Date.now();
@@ -37,6 +51,7 @@ function toViews(rows: Row[]): NotificationView[] {
     details: Array.isArray(n.details) ? (n.details as [string, string][]) : null,
     read: n.read,
     ago: ago(n.created_at, now),
+    day: dayLabel(n.created_at, now),
     when: new Date(n.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: TZ }),
   }));
 }
@@ -66,15 +81,15 @@ export default async function NotificationsPage() {
           )
         }
       />
-      <Card className="overflow-hidden">
-        {list.length === 0 ? (
+      {list.length === 0 ? (
+        <Card>
           <EmptyState icon={<Bell className="size-6" />} title="No notifications yet">
             Reminders about due dates, approvals and stock will show up here and in your email.
           </EmptyState>
-        ) : (
-          <NotificationList items={list} />
-        )}
-      </Card>
+        </Card>
+      ) : (
+        <NotificationList items={list} />
+      )}
     </>
   );
 }

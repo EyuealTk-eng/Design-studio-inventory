@@ -9,6 +9,8 @@ export interface AppContext {
   unread: number;
   pending_requests: number;
   pending_users: number;
+  /** Admins only: members seen in the last 5 minutes (0 before migration 0005). */
+  online: number;
 }
 
 /**
@@ -19,7 +21,7 @@ export interface AppContext {
 export const getAppContext = cache(async (): Promise<AppContext | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("app_context");
-  if (!error) return (data as AppContext | null) ?? null;
+  if (!error) return data ? { ...(data as AppContext), online: (data as AppContext).online ?? 0 } : null;
   // Migration 0004 not applied yet: fall back to separate queries so nobody gets locked out.
   if (error.code !== "PGRST202" && error.code !== "42883") return null;
   const { data: claims } = await supabase.auth.getClaims();
@@ -34,7 +36,7 @@ export const getAppContext = cache(async (): Promise<AppContext | null> => {
     isAdmin ? count(supabase.from("requests").select("id", { count: "exact", head: true }).eq("status", "pending")) : 0,
     isAdmin ? count(supabase.from("profiles").select("id", { count: "exact", head: true }).eq("status", "pending")) : 0,
   ]);
-  return { profile: profile as Profile, unread, pending_requests, pending_users };
+  return { profile: profile as Profile, unread, pending_requests, pending_users, online: 0 };
 });
 
 /** The signed-in, approved user's profile, or null. */

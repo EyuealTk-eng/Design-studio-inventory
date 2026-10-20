@@ -16,6 +16,7 @@ import {
   Boxes,
   UserCheck,
   UserCircle,
+  Users,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -28,6 +29,8 @@ interface NavItem {
   label: string;
   icon: LucideIcon;
   count?: number;
+  /** Green "online now" pill instead of the blue count. */
+  live?: number;
 }
 
 export function Sidebar({
@@ -35,7 +38,7 @@ export function Sidebar({
   counts,
 }: {
   profile: { full_name: string; student_id: string; role: Role };
-  counts: { notifications: number; requests: number; registrations: number };
+  counts: { notifications: number; requests: number; registrations: number; online: number };
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -49,6 +52,7 @@ export function Sidebar({
       ? [
           { href: "/requests", label: "Requests", icon: ClipboardList, count: counts.requests },
           { href: "/registrations", label: "Registrations", icon: UserCheck, count: counts.registrations },
+          { href: "/members", label: "Members", icon: Users, live: counts.online },
           { href: "/checkin", label: "Monthly check-in", icon: CalendarCheck },
           { href: "/settings", label: "Settings", icon: Settings },
         ]
@@ -76,7 +80,7 @@ export function Sidebar({
       </div>
       <nav aria-label="Main" className="flex-1 overflow-y-auto px-3">
         <ul className="flex flex-col gap-1">
-          {nav.map(({ href, label, icon: Icon, count }) => {
+          {nav.map(({ href, label, icon: Icon, count, live }) => {
             const active = isActive(href);
             return (
               <li key={href}>
@@ -99,6 +103,13 @@ export function Sidebar({
                   )}
                   <Icon className="relative size-5" aria-hidden />
                   <span className="relative flex-1">{label}</span>
+                  {!!live && (
+                    <span className="relative inline-flex items-center gap-1.5 rounded-full bg-ok-bg px-2 py-0.5 text-xs font-bold text-ok" title={`${live} online now`}>
+                      <span className="blip size-1.5 rounded-full bg-ok" aria-hidden />
+                      {live}
+                      <span className="sr-only"> online now</span>
+                    </span>
+                  )}
                   {!!count && (
                     <span className="relative grid min-w-6 place-items-center rounded-full bg-brand-600 px-1.5 text-xs font-bold text-white">
                       {count > 99 ? "99+" : count}

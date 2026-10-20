@@ -81,7 +81,7 @@ export async function signup(_prev: FormState, formData: FormData): Promise<Form
   if (idOwner) {
     // Someone may be trying to use another student's ID: tell the admins.
     await notify(await adminRecipients(), {
-      kind: "signup",
+      kind: "duplicate_id",
       title: `Duplicate student ID attempt: ${studentId}`,
       body: "Someone tried to register with a student ID that already has an account. If the existing account isn't the real owner, delete it on the Registrations page.",
       details: [
