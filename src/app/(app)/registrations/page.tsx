@@ -102,7 +102,7 @@ export default async function RegistrationsPage({ searchParams }: PageProps<"/re
             aria-current={tab === t.key ? "page" : undefined}
             className={cx(
               "inline-flex min-h-9 items-center rounded-full px-3.5 text-sm font-semibold ring-1 ring-inset",
-              tab === t.key ? "bg-brand-600 text-white ring-brand-600" : "bg-white text-muted ring-line hover:text-ink",
+              tab === t.key ? "bg-brand-600 text-white ring-brand-600" : "bg-card text-muted ring-line hover:text-ink",
             )}
           >
             {t.label}

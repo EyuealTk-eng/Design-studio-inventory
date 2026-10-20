@@ -152,7 +152,7 @@ export function NotificationList({ items }: { items: NotificationView[] }) {
               "press inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold ring-1 ring-inset transition-colors",
               category === c.key
                 ? "bg-brand-600 text-white ring-brand-600"
-                : cx("bg-white ring-line hover:text-ink", c.key === "duplicates" ? "text-bad" : "text-muted"),
+                : cx("bg-card ring-line hover:text-ink", c.key === "duplicates" ? "text-bad" : "text-muted"),
             )}
           >
             {c.label}
@@ -204,7 +204,7 @@ function NotificationRows({
         return (
           <li
             key={n.id}
-            className={cx("enter-up transition-colors duration-300", unread ? "bg-brand-50/50" : "bg-white")}
+            className={cx("enter-up transition-colors duration-300", unread ? "bg-brand-50/50" : "bg-card")}
             style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
           >
             <button

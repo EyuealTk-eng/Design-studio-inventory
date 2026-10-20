@@ -35,14 +35,14 @@ export default async function DashboardPage() {
 
 function Hero({ profile, summary, children }: { profile: Profile; summary: string; children?: React.ReactNode }) {
   return (
-    <div className="relative mb-8 overflow-hidden rounded-3xl bg-brand-700 px-6 pb-24 pt-8 text-white sm:px-10 sm:pt-10">
+    <div className="relative mb-8 overflow-hidden rounded-3xl bg-hero px-6 pb-24 pt-8 text-white sm:px-10 sm:pt-10">
       <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="enter-up text-sm font-medium text-brand-100">{formatDate(today())}</p>
+          <p className="enter-up text-sm font-medium text-white/80">{formatDate(today())}</p>
           <h1 className="enter-up mt-1 text-3xl font-bold tracking-tight sm:text-4xl" style={{ animationDelay: "70ms" }}>
             {greeting()}, {profile.full_name.split(" ")[0]}
           </h1>
-          <p className="enter-up mt-2 flex items-center gap-2 text-brand-100" style={{ animationDelay: "140ms" }}>
+          <p className="enter-up mt-2 flex items-center gap-2 text-white/80" style={{ animationDelay: "140ms" }}>
             <span className="blip inline-block size-2 rounded-full bg-white" aria-hidden />
             {summary}
           </p>
@@ -125,7 +125,7 @@ async function AdminDashboard({ profile }: { profile: Profile }) {
         >
           <CalendarCheck className="size-6" aria-hidden />
           <span>
-            <span className="block text-xs text-brand-100">Monthly check-in</span>
+            <span className="block text-xs text-white/80">Monthly check-in</span>
             <span className="font-semibold">
               {untilCheckin === 0 ? "Today" : `In ${untilCheckin} day${untilCheckin === 1 ? "" : "s"}`} · {formatDate(checkin)}
             </span>

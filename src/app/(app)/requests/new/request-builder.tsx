@@ -238,7 +238,7 @@ export function RequestBuilder({
               onClick={() => setTemplateTaken(true)}
               className={cx(
                 "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-colors",
-                templateTaken ? "border border-line bg-white text-ink hover:bg-brand-50" : "bg-brand-600 text-white hover:bg-brand-700",
+                templateTaken ? "border border-line bg-card text-ink hover:bg-brand-50" : "bg-brand-600 text-white hover:bg-brand-700",
               )}
             >
               {templateTaken ? <CheckCircle2 className="size-4 text-ok" aria-hidden /> : <Download className="size-4" aria-hidden />}

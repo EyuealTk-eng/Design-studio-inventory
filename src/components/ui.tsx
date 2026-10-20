@@ -10,8 +10,8 @@ const buttonBase =
   "press inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-[color,background-color,border-color,transform] duration-150 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100";
 const buttonVariants = {
   primary: "bg-brand-600 text-white shadow-sm hover:bg-brand-700 active:bg-brand-800",
-  secondary: "border border-line bg-white text-ink hover:border-brand-300 hover:bg-brand-50",
-  danger: "border border-bad/20 bg-bad-bg text-bad hover:bg-bad hover:text-white",
+  secondary: "border border-line bg-card text-ink hover:border-brand-300 hover:bg-brand-50",
+  danger: "border border-bad/20 bg-bad-bg text-bad hover:bg-bad hover:text-card",
   ghost: "text-brand-700 hover:bg-brand-50",
 };
 export type ButtonVariant = keyof typeof buttonVariants;
@@ -39,7 +39,7 @@ export function ButtonLink({
 export function Card({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
-      className={cx("rounded-2xl border border-line bg-white shadow-card", className)}
+      className={cx("rounded-2xl border border-line bg-card shadow-card", className)}
       {...props}
     />
   );
@@ -139,7 +139,7 @@ export function Field({
 }
 
 export const inputClass =
-  "min-h-11 w-full rounded-xl border border-line bg-white px-3.5 text-base text-ink placeholder:text-slate-400 transition-colors hover:border-brand-300 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-100 sm:text-sm";
+  "min-h-11 w-full rounded-xl border border-line bg-card px-3.5 text-base text-ink placeholder:text-slate-400 transition-colors hover:border-brand-300 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-100 sm:text-sm";
 
 export function Input({ className, ...props }: ComponentProps<"input">) {
   return <input className={cx(inputClass, className)} {...props} />;

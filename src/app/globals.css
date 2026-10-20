@@ -18,6 +18,10 @@
   --color-muted: #4a5a78;
   --color-line: #dbe5f3;
   --color-surface: #f4f8fe;
+  /* Cards, inputs, panels (white in light mode). */
+  --color-card: #ffffff;
+  /* The solid blue banners (dashboard hero, sign-in panel). */
+  --color-hero: #1d45d8;
 
   --color-ok: #047857;
   --color-ok-bg: #ecfdf5;
@@ -33,6 +37,50 @@
 
 html {
   color-scheme: light;
+}
+
+/* ---------------------------------------------------------------- dark mode
+   <html data-theme="dark"> is set before the first paint by the script in app/layout.tsx
+   (saved choice, or the device setting). Only the tokens change; printing stays light. */
+@media screen {
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --color-brand-50: #13213f;
+    --color-brand-100: #1a2c52;
+    --color-brand-200: #233b6b;
+    --color-brand-300: #34548f;
+    --color-brand-400: #5583e8;
+    --color-brand-500: #4f7ff5;
+    --color-brand-600: #3a6cf0;
+    --color-brand-700: #2f5ee0;
+    --color-brand-800: #2850c4;
+    --color-brand-950: #020617;
+
+    --color-ink: #e6edf9;
+    --color-muted: #9aabc8;
+    --color-line: #24345a;
+    --color-surface: #0a1324;
+    --color-card: #101c33;
+    --color-hero: #1a3a9c;
+
+    --color-ok: #34d399;
+    --color-ok-bg: #0b2a20;
+    --color-warn: #fbbf24;
+    --color-warn-bg: #2a1f08;
+    --color-bad: #f87171;
+    --color-bad-bg: #2f1215;
+
+    --color-slate-100: #1c2945;
+    --color-slate-200: #263556;
+    --color-slate-300: #3a4a6b;
+    --color-slate-400: #6b7a99;
+    --color-slate-600: #b4c0d6;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px rgb(0 0 0 / 0.25);
+  }
+  /* Blue text needs to be lighter on a dark background than blue buttons do. */
+  :root[data-theme="dark"] :is(.text-brand-600, .text-brand-700, .text-brand-800):not(svg) { color: #8db4ff; }
+  :root[data-theme="dark"] .skeleton::after { background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.06), transparent); }
 }
 
 body {

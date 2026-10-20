@@ -65,7 +65,7 @@ export default async function RequestsPage({ searchParams }: PageProps<"/request
       {memberName && (
         <p className="mb-3 flex flex-wrap items-center gap-2 text-sm text-muted">
           Showing requests from <span className="font-semibold text-ink">{memberName}</span>
-          <Link href={`/requests?filter=${filter}`} className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-semibold ring-1 ring-line hover:text-ink">
+          <Link href={`/requests?filter=${filter}`} className="inline-flex items-center gap-1 rounded-full bg-card px-2.5 py-1 text-xs font-semibold ring-1 ring-line hover:text-ink">
             <X className="size-3.5" aria-hidden /> Show everyone
           </Link>
         </p>
@@ -78,7 +78,7 @@ export default async function RequestsPage({ searchParams }: PageProps<"/request
             aria-current={filter === f.key ? "page" : undefined}
             className={cx(
               "inline-flex min-h-9 shrink-0 items-center rounded-full px-3.5 text-sm font-semibold ring-1 ring-inset transition-colors",
-              filter === f.key ? "bg-brand-600 text-white ring-brand-600" : "bg-white text-muted ring-line hover:text-ink",
+              filter === f.key ? "bg-brand-600 text-white ring-brand-600" : "bg-card text-muted ring-line hover:text-ink",
             )}
           >
             {f.label}

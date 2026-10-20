@@ -48,9 +48,9 @@ const initials = (name: string) =>
 
 function Avatar({ m, size = "md" }: { m: MemberView; size?: "sm" | "md" }) {
   return (
-    <span className={cx("relative grid shrink-0 place-items-center rounded-full font-bold", size === "md" ? "size-10 text-sm" : "size-8 text-xs", m.admin ? "bg-brand-700 text-white" : "bg-brand-100 text-brand-800")} aria-hidden>
+    <span className={cx("relative grid shrink-0 place-items-center rounded-full font-bold", size === "md" ? "size-10 text-sm" : "size-8 text-xs", m.admin ? "bg-hero text-white" : "bg-brand-100 text-brand-800")} aria-hidden>
       {initials(m.name)}
-      {m.online && <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-ok ring-2 ring-white" />}
+      {m.online && <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-ok ring-2 ring-card" />}
     </span>
   );
 }
@@ -113,8 +113,8 @@ export function MemberList({ members, meId }: { members: MemberView[]; meId: str
         )}
       </Card>
 
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-        <nav aria-label="Filter members" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 xl:flex-1">
+      <div className="flex flex-col gap-3 2xl:flex-row 2xl:items-center">
+        <nav aria-label="Filter members" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 2xl:flex-1">
           {FILTERS.map((f) => (
             <button
               key={f.key}
@@ -123,7 +123,7 @@ export function MemberList({ members, meId }: { members: MemberView[]; meId: str
               aria-pressed={filter === f.key}
               className={cx(
                 "press inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold ring-1 ring-inset transition-colors",
-                filter === f.key ? "bg-brand-600 text-white ring-brand-600" : "bg-white text-muted ring-line hover:text-ink",
+                filter === f.key ? "bg-brand-600 text-white ring-brand-600" : "bg-card text-muted ring-line hover:text-ink",
               )}
             >
               {f.label}
@@ -133,7 +133,7 @@ export function MemberList({ members, meId }: { members: MemberView[]; meId: str
             </button>
           ))}
         </nav>
-        <label className="relative xl:w-72">
+        <label className="relative 2xl:w-72">
           <span className="sr-only">Search members</span>
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" aria-hidden />
           <input

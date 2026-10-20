@@ -11,7 +11,7 @@ export default function Loading() {
           <div key={i} className="skeleton h-24" style={{ animationDelay: `${i * 80}ms` }} />
         ))}
       </div>
-      <div className="flex flex-col gap-3 rounded-2xl border border-line bg-white p-5">
+      <div className="flex flex-col gap-3 rounded-2xl border border-line bg-card p-5">
         {[0, 1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="flex items-center gap-4">
             <div className="skeleton h-10 w-10 shrink-0" />

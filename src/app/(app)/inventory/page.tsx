@@ -54,7 +54,7 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
         aria-current={filter === value ? "true" : undefined}
         className={cx(
           "inline-flex min-h-9 items-center rounded-full px-3.5 text-sm font-semibold ring-1 ring-inset transition-colors",
-          filter === value ? "bg-brand-600 text-white ring-brand-600" : "bg-white text-muted ring-line hover:text-ink",
+          filter === value ? "bg-brand-600 text-white ring-brand-600" : "bg-card text-muted ring-line hover:text-ink",
         )}
       >
         {label}

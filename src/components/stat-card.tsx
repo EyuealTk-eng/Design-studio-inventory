@@ -50,7 +50,7 @@ export function StatCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
       className={cx(
-        "flex h-full flex-col rounded-2xl border border-line bg-white p-3.5 sm:p-5",
+        "flex h-full flex-col rounded-2xl border border-line bg-card p-3.5 sm:p-5",
         href && "lift hover:border-brand-300",
       )}
     >

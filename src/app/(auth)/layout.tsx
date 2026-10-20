@@ -11,7 +11,7 @@ const highlights = [
 export default function AuthLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="grid min-h-dvh lg:grid-cols-[1fr_1.1fr]">
-      <aside className="relative hidden overflow-hidden bg-brand-700 p-12 text-white lg:flex lg:flex-col lg:justify-between">
+      <aside className="relative hidden overflow-hidden bg-hero p-12 text-white lg:flex lg:flex-col lg:justify-between">
         <Ecg beats={5} strokeWidth={2.5} className="absolute inset-x-0 top-1/2 h-24 w-full -translate-y-[170%] text-white/80" />
         <div className="relative flex items-center gap-3">
           <Logo className="size-10 text-white/15" />
@@ -23,7 +23,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
           </h2>
           <ul className="mt-8 space-y-4">
             {highlights.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-center gap-3 text-brand-50">
+              <li key={text} className="flex items-center gap-3 text-white/90">
                 <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/10">
                   <Icon className="size-5" aria-hidden />
                 </span>
@@ -32,9 +32,9 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
             ))}
           </ul>
         </div>
-        <p className="relative text-sm text-brand-200">Studio Inventory</p>
+        <p className="relative text-sm text-white/70">Studio Inventory</p>
       </aside>
-      <main className="flex items-center justify-center bg-white px-4 py-10 sm:px-8">
+      <main className="flex items-center justify-center bg-card px-4 py-10 sm:px-8">
         <div className="w-full max-w-md">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <Logo className="size-10 text-brand-600" />

@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 import { Logo, cx } from "@/components/ui";
+import { ThemeSwitch } from "@/components/theme-switch";
 import type { Role } from "@/lib/types";
 
 interface NavItem {
@@ -122,6 +123,9 @@ export function Sidebar({
           })}
         </ul>
       </nav>
+      <div className="mx-3 mt-3">
+        <ThemeSwitch />
+      </div>
       <div className="m-3 rounded-2xl border border-line bg-surface p-3">
         <div className="flex items-center gap-3">
           <div className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-600 text-sm font-bold text-white" aria-hidden>
@@ -141,7 +145,7 @@ export function Sidebar({
           <form action={logout}>
             <button
               type="submit"
-              className="grid size-11 place-items-center rounded-xl text-muted hover:bg-white hover:text-bad"
+              className="grid size-11 place-items-center rounded-xl text-muted hover:bg-card hover:text-bad"
               aria-label="Sign out"
               title="Sign out"
             >
@@ -155,11 +159,11 @@ export function Sidebar({
 
   return (
     <>
-      <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-72 border-r border-line bg-white lg:block">
+      <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-72 border-r border-line bg-card lg:block">
         {panel}
       </aside>
 
-      <header className="no-print sticky top-0 z-30 flex items-center justify-between border-b border-line bg-white px-4 py-2 lg:hidden">
+      <header className="no-print sticky top-0 z-30 flex items-center justify-between border-b border-line bg-card px-4 py-2 lg:hidden">
         <Link href="/dashboard" className="flex items-center gap-2 font-bold">
           <Logo className="size-8 text-brand-600" />
           Design Studio
@@ -167,7 +171,7 @@ export function Sidebar({
         <div className="flex items-center gap-1">
           <Link href="/notifications" className="relative grid size-11 place-items-center rounded-xl text-muted" aria-label={`Notifications (${counts.notifications} unread)`}>
             <Bell className="size-5" aria-hidden />
-            {counts.notifications > 0 && <span className="absolute right-2.5 top-2.5 size-2.5 rounded-full bg-brand-600 ring-2 ring-white" />}
+            {counts.notifications > 0 && <span className="absolute right-2.5 top-2.5 size-2.5 rounded-full bg-brand-600 ring-2 ring-card" />}
           </Link>
           <button
             type="button"
@@ -192,7 +196,7 @@ export function Sidebar({
               onClick={() => setOpen(false)}
             />
             <motion.div
-              className="absolute inset-y-0 left-0 w-[min(20rem,85vw)] bg-white shadow-2xl"
+              className="absolute inset-y-0 left-0 w-[min(20rem,85vw)] bg-card shadow-2xl"
               initial={{ x: reduce ? 0 : "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: reduce ? 0 : "-100%", transition: { duration: 0.18 } }}
