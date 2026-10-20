@@ -126,7 +126,6 @@ export function NotificationList({ items }: { items: NotificationView[] }) {
                   <span className={cx("truncate text-ink", unread ? "font-bold" : "font-medium")}>{n.title}</span>
                   {unread && <span className="size-2 shrink-0 rounded-full bg-brand-600" aria-label="Unread" />}
                 </span>
-                {!isOpen && <span className="mt-0.5 block truncate text-sm text-muted">{n.body.split("\n")[0]}</span>}
               </span>
               <span className="flex shrink-0 items-center gap-2 pt-0.5 text-xs text-muted">
                 <time title={n.when}>{n.ago}</time>
@@ -141,7 +140,8 @@ export function NotificationList({ items }: { items: NotificationView[] }) {
             >
               <div className="overflow-hidden">
                 <div className={cx("flex flex-col gap-4 px-5 pb-5 pl-14 transition-opacity duration-300", isOpen ? "opacity-100" : "opacity-0")}>
-                  {n.body && <Body text={n.body} />}
+                  {/* With a details list the sentence only repeats it; a message's text is its content. */}
+                  {n.body && (!n.details?.length || n.kind === "message") && <Body text={n.body} />}
                   {n.details && n.details.length > 0 && (
                     <dl className="grid grid-cols-1 gap-x-6 gap-y-2.5 rounded-xl bg-surface p-4 sm:grid-cols-[minmax(8rem,auto)_1fr]">
                       {n.details.map(([k, v], j) => (
